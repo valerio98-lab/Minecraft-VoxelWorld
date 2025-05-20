@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import {SimplexNoise } from 'three/examples/jsm/math/SimplexNoise.js';
+//import {SimplexNoise } from 'three/examples/jsm/math/SimplexNoise.js';
+import { makeNoise2D } from 'open-simplex-noise';
 
 const geometry = new THREE.BoxGeometry(1, 1, 1);
 const material = new THREE.MeshLambertMaterial({ color: 0x00d000 });
@@ -14,12 +15,16 @@ export class World extends THREE.Group{
     data = []; // 3D array to hold block data
 
     params = {
-        terrain: {
-            scale:50,
-            magnitude: 0.5,
-            offset: 0.2
-        }
+    terrain: {
+        scale: 50,           // scala base per l’ottava 0
+        magnitude: 0.5,      // ampiezza complessiva (verrà applicata dopo)
+        offset: 0.2,         // spostamento (così non avremo mai height = 0)
+        octaves: 4,          // numero di ottave
+        persistence: 0.6,    // di quanto diminuisce ampiezza da un’ottava alla successiva
+        lacunarity: 2.0      // di quanto aumenta frequenza da un’ottava alla successiva
+    }
     };
+
 
     constructor(size={width: 64, height: 16}) {
         super();
@@ -56,11 +61,46 @@ export class World extends THREE.Group{
     }
 
     generateTerrain() {
-        const simplex = new SimplexNoise();
+        const noise2D = makeNoise2D(Math.random); // Create a 2D noise generator
+
+        // Pre-compute the sum of the magnitudes of all octaves in order to normalize the final noise value
+        let totalMagnitude = 0.0;
+        let ampTemp = 1.0;
+        for (let octave = 0; octave < this.params.terrain.octaves; octave++) {
+            totalMagnitude += ampTemp;
+            ampTemp *= this.params.terrain.persistence; // Decrease amplitude for the next octave
+        }
+
+        // Generate terrain using Perlin noise looping through each block in the world
+        // and applying the noise function to determine the height of each block
         for (let x = 0; x < this.size.width; x++) {
             for (let z = 0; z < this.size.width; z++) {
-                const noiseValue = simplex.noise(x / this.params.terrain.scale, z / this.params.terrain.scale);
-                const scaledNoise = this.params.terrain.magnitude * noiseValue + this.params.terrain.offset;
+                let frequency = 1.0;
+                let amplitude = 1.0;
+                let noiseValue = 0.0;
+
+                // Generate noise using multiple octaves 
+                for (let octave = 0; octave < this.params.terrain.octaves; octave++) {
+                    const sampleX = x / this.params.terrain.scale * frequency;
+                    const sampleZ = z / this.params.terrain.scale * frequency;
+                    
+                    const raw = noise2D(sampleX, sampleZ); // Get the noise value for the current coordinates
+                    
+                    noiseValue += raw * amplitude;
+
+                    // Update frequency and amplitude for the next octave
+                    frequency *= this.params.terrain.lacunarity; // Increase frequency
+                    amplitude *= this.params.terrain.persistence; // Decrease amplitude
+                }
+
+                // Normalize the final noise value to [0, 1]
+                const normalized = ((noiseValue / totalMagnitude) + 1) / 2; // firstly normalize to [-1, 1] then to [0, 1]
+
+                // magnitude and offset applied to the noise value
+                // This will scale the noise value to the range [offset, magnitude + offset] 
+
+                const scaledNoise = this.params.terrain.magnitude * normalized + this.params.terrain.offset;
+
                 let height = Math.floor(this.size.height * scaledNoise);
                 height = Math.max(0, Math.min(height, this.size.height)); // Clamp height to valid range
 
