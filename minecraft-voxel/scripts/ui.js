@@ -8,6 +8,7 @@ export function createUI(world) {
     gui.add(world.size, 'height', 8, 64, 1).name('World Height')
 
     const terrainFolder = gui.addFolder('Terrain Parameters');
+    terrainFolder.add(world.params.terrain, 'seed', 0, 10000, 1).name('Seed');
     terrainFolder.add(world.params.terrain, 'scale', 1, 100, 1).name('Scale');
     terrainFolder.add(world.params.terrain, 'magnitude', 0, 1, 0.01).name('Magnitude');
     terrainFolder.add(world.params.terrain, 'offset', 0, 1, 0.01).name('Offset');

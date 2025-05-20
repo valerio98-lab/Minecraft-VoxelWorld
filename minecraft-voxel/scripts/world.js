@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 //import {SimplexNoise } from 'three/examples/jsm/math/SimplexNoise.js';
 import { makeNoise2D } from 'open-simplex-noise';
-
+import {RNG } from './rng.js';
+import { BLOCKS } from './block.js';
 const geometry = new THREE.BoxGeometry(1, 1, 1);
-const material = new THREE.MeshLambertMaterial({ color: 0x00d000 });
+const material = new THREE.MeshLambertMaterial();
 
 export class World extends THREE.Group{
     /**
@@ -16,6 +17,7 @@ export class World extends THREE.Group{
 
     params = {
     terrain: {
+        seed: 0,
         scale: 50,           // scala base per l’ottava 0
         magnitude: 0.5,      // ampiezza complessiva (verrà applicata dopo)
         offset: 0.2,         // spostamento (così non avremo mai height = 0)
@@ -45,7 +47,7 @@ export class World extends THREE.Group{
                 const row = [];
                 for (let z = 0; z < this.size.width; z++) {
                     row.push({
-                        id: 0, //if you put 0 here, it will not be rendered
+                        id: BLOCKS.empty.id, //if you put 0 here, it will not be rendered
                                                                     // 0 is usually used for air or empty space
                                                                     // 1 is usually used for grass or dirt
                                                                     // 2 is usually used for stone or other solid blocks
@@ -61,7 +63,10 @@ export class World extends THREE.Group{
     }
 
     generateTerrain() {
-        const noise2D = makeNoise2D(Math.random); // Create a 2D noise generator
+        this.rng = new RNG(this.params.terrain.seed); // Initialize RNG with the seed from params
+        const randomFloat = this.rng.random();
+        const seedInt = Math.floor(randomFloat * 0x100000000); // Convert to integer seed for noise generation
+        const noise2D = makeNoise2D(seedInt); // Create a 2D noise generator
 
         // Pre-compute the sum of the magnitudes of all octaves in order to normalize the final noise value
         let totalMagnitude = 0.0;
@@ -81,13 +86,11 @@ export class World extends THREE.Group{
 
                 // Generate noise using multiple octaves 
                 for (let octave = 0; octave < this.params.terrain.octaves; octave++) {
-                    const sampleX = x / this.params.terrain.scale * frequency;
-                    const sampleZ = z / this.params.terrain.scale * frequency;
-                    
+                    const sampleX = (x / this.params.terrain.scale) * frequency;
+                    const sampleZ = (z / this.params.terrain.scale) * frequency;
                     const raw = noise2D(sampleX, sampleZ); // Get the noise value for the current coordinates
                     
                     noiseValue += raw * amplitude;
-
                     // Update frequency and amplitude for the next octave
                     frequency *= this.params.terrain.lacunarity; // Increase frequency
                     amplitude *= this.params.terrain.persistence; // Decrease amplitude
@@ -97,15 +100,19 @@ export class World extends THREE.Group{
                 const normalized = ((noiseValue / totalMagnitude) + 1) / 2; // firstly normalize to [-1, 1] then to [0, 1]
 
                 // magnitude and offset applied to the noise value
-                // This will scale the noise value to the range [offset, magnitude + offset] 
-
                 const scaledNoise = this.params.terrain.magnitude * normalized + this.params.terrain.offset;
 
                 let height = Math.floor(this.size.height * scaledNoise);
                 height = Math.max(0, Math.min(height, this.size.height)); // Clamp height to valid range
 
-                for (let y = 0; y < height; y++) {
-                    this.setId(x, y, z, 1); // Set block ID to 1 (solid) up to the calculated height
+                for (let y = 0; y < this.size.height; y++) {
+                    if(y<height){
+                        this.setId(x, y, z, BLOCKS.dirt.id); // Set block ID to 1 (grass) up to the calculated height
+                    } else if (y=== height) {
+                        this.setId(x, y, z, BLOCKS.grass.id); // Set block ID to 1 (solid) up to the calculated height
+                    } else{
+                        this.setId(x, y, z, BLOCKS.empty.id); // Set block ID to 0 (empty) below the calculated height
+                    }
                 }
             }
         }
@@ -123,11 +130,13 @@ export class World extends THREE.Group{
             for (let y = 0; y < this.size.height; y++) {
                 for (let z = 0; z < this.size.width; z++) {
                     const blockId = this.getBlock(x, y, z).id;
+                    const blockType = Object.values(BLOCKS).find(block => block.id === blockId);
                     const instanceId = mesh.count;
 
-                    if (blockId !== 0){
+                    if (blockId !== BLOCKS.empty.id && !this.isBlockHidden(x, y, z)) { // Only add non-empty blocks
                         matrix.setPosition(x+0.5, y+0.5, z+0.5);
                         mesh.setMatrixAt(instanceId, matrix); // Aggiungiamo la matrice alla mesh
+                        mesh.setColorAt(instanceId, new THREE.Color(blockType.color)); // Set color based on block ID
                         this.setInstanceId(x, y, z, instanceId); // Set the instance ID in the data structure
                         mesh.count++;
                     }
@@ -187,5 +196,29 @@ export class World extends THREE.Group{
         if (this.inBounds(x, y, z)) {
             this.data[x][y][z].instanceId = instanceId;
         }
+    }
+
+
+  /**
+   * Returns true if this block is completely hidden by other blocks
+   * @param {number} x 
+   * @param {number} y 
+   * @param {number} z 
+   * @returns {boolean}
+   */
+    isBlockHidden(x, y, z) {
+        const directions = [
+            [0, 1, 0],   // up
+            [0, -1, 0],  // down
+            [1, 0, 0],   // left
+            [-1, 0, 0],  // right
+            [0, 0, 1],   // forward
+            [0, 0, -1]   // back
+        ];
+
+        return directions.every(([dx, dy, dz]) => {
+            const neighbor = this.getBlock(x + dx, y + dy, z + dz);
+            return neighbor && neighbor.id !== BLOCKS.empty.id;
+        });
     }
 }
