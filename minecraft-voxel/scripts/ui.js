@@ -1,4 +1,5 @@
 import {GUI} from 'three/addons/libs/lil-gui.module.min.js';
+import { resources } from './block';
 
 
 export function createUI(world) {
@@ -15,7 +16,19 @@ export function createUI(world) {
     terrainFolder.add(world.params.terrain, 'octaves', 1, 8, 1).name('Octaves');
     terrainFolder.add(world.params.terrain, 'persistence', 0, 1, 0.01).name('Persistence');
     terrainFolder.add(world.params.terrain, 'lacunarity', 1, 4, 0.01).name('Lacunarity');
+
+    const resourcesFolder = gui.addFolder('Resource Parameters');
     
+    resources.forEach(resource =>{
+        const resourceFolder = resourcesFolder.addFolder(resource.name);
+        resourceFolder.add(resource, 'scarcity', 0, 1, 0.01).name('Scarcity');
+
+        const scaleFolder = resourceFolder.addFolder('Scale');
+        scaleFolder.add(resource.scale, 'x', 1, 100, 1).name('Scale X');
+        scaleFolder.add(resource.scale, 'y', 1, 100, 1).name('Scale Y');
+        scaleFolder.add(resource.scale, 'z', 1, 100, 1).name('Scale Z');
+    })
+
     gui.onChange(() => {
         world.generate();
     });

@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 //import {SimplexNoise } from 'three/examples/jsm/math/SimplexNoise.js';
 import { makeNoise2D } from 'open-simplex-noise';
+import { makeNoise3D } from 'open-simplex-noise';   
 import {RNG } from './rng.js';
-import { BLOCKS } from './block.js';
+import { BLOCKS, resources } from './block.js';
 const geometry = new THREE.BoxGeometry(1, 1, 1);
 const material = new THREE.MeshLambertMaterial();
 
@@ -34,8 +35,12 @@ export class World extends THREE.Group{
     }
 
     generate() {
+        this.rng = new RNG(this.params.terrain.seed); // Initialize RNG with the seed from params
+        const randomFloat = this.rng.random();
+        const seedInt = Math.floor(randomFloat * 0x100000000); // Convert to integer seed for noise generation
         this.initializeTerrain();
-        this.generateTerrain();
+        this.generateResources(seedInt);
+        this.generateTerrain(seedInt);
         this.generateMeshes();
     }
     
@@ -62,10 +67,7 @@ export class World extends THREE.Group{
         }
     }
 
-    generateTerrain() {
-        this.rng = new RNG(this.params.terrain.seed); // Initialize RNG with the seed from params
-        const randomFloat = this.rng.random();
-        const seedInt = Math.floor(randomFloat * 0x100000000); // Convert to integer seed for noise generation
+    generateTerrain(seedInt) {
         const noise2D = makeNoise2D(seedInt); // Create a 2D noise generator
 
         // Pre-compute the sum of the magnitudes of all octaves in order to normalize the final noise value
@@ -106,16 +108,32 @@ export class World extends THREE.Group{
                 height = Math.max(0, Math.min(height, this.size.height)); // Clamp height to valid range
 
                 for (let y = 0; y < this.size.height; y++) {
-                    if(y<height){
+                    if(y<height && this.getBlock(x, y, z).id === BLOCKS.empty.id) {
                         this.setId(x, y, z, BLOCKS.dirt.id); // Set block ID to 1 (grass) up to the calculated height
                     } else if (y=== height) {
                         this.setId(x, y, z, BLOCKS.grass.id); // Set block ID to 1 (solid) up to the calculated height
-                    } else{
-                        this.setId(x, y, z, BLOCKS.empty.id); // Set block ID to 0 (empty) below the calculated height
+                    } else if (y > height) {
+                        this.setId(x, y, z, BLOCKS.empty.id); // Set block ID to 0 (empty) above the calculated height
                     }
                 }
             }
         }
+    }
+
+    generateResources(seedInt) {
+        const noise3D = makeNoise3D(seedInt); // Create a Simplex noise generator with the seed
+        resources.forEach(resource => {
+            for (let x = 0; x < this.size.width; x++) {
+                for (let y = 0; y < this.size.height; y++) {
+                    for (let z = 0; z < this.size.width; z++) {
+                        const value = noise3D(x / resource.scale.x, y / resource.scale.y, z / resource.scale.z); // Generate noise value for the current block
+                        if (value > resource.scarcity) { // If the noise value is above a threshold, set a resource block
+                            this.setId(x, y, z, resource.id); // Set block ID to the resource ID
+                        }
+                    }
+                }
+            }
+        });
     }
 
     generateMeshes(){
