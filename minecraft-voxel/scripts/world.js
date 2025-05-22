@@ -5,7 +5,7 @@ import { makeNoise3D } from 'open-simplex-noise';
 import {RNG } from './rng.js';
 import { BLOCKS, resources } from './block.js';
 const geometry = new THREE.BoxGeometry(1, 1, 1);
-const material = new THREE.MeshLambertMaterial();
+
 
 export class World extends THREE.Group{
     /**
@@ -139,29 +139,44 @@ export class World extends THREE.Group{
     generateMeshes(){
         this.clear(); // Clear previous blocks if any
 
-        const max_count = this.size.width * this.size.width * this.size.height;
-        const mesh = new THREE.InstancedMesh(geometry, material, max_count);
-        mesh.count = 0;
+        // lookup table for block types
+
+
+        const meshes = {}; 
+        Object.values(BLOCKS)
+            .filter(blockType => blockType.id !== BLOCKS.empty.id) // Filter out empty blocks
+            .forEach(blockType => {
+                const max_count = this.size.width * this.size.width * this.size.height;
+                const mesh = new THREE.InstancedMesh(geometry, blockType.material, max_count);
+                mesh.count = 0;
+                mesh.castShadow = true; // Enable shadow casting for the mesh
+                mesh.receiveShadow = true; // Enable shadow receiving for the mesh
+                mesh.name = blockType.name; // Set the name of the mesh to the block name
+                meshes[blockType.id] = mesh; // Store the mesh in the lookup table
+            });
+
 
         const matrix = new THREE.Matrix4();
         for (let x = 0; x < this.size.width; x++) {
             for (let y = 0; y < this.size.height; y++) {
                 for (let z = 0; z < this.size.width; z++) {
                     const blockId = this.getBlock(x, y, z).id;
-                    const blockType = Object.values(BLOCKS).find(block => block.id === blockId);
+
+                    if (blockId === BLOCKS.empty.id) continue; // Skip empty blocks
+                    
+                    const mesh = meshes[blockId]; 
                     const instanceId = mesh.count;
 
-                    if (blockId !== BLOCKS.empty.id && !this.isBlockHidden(x, y, z)) { // Only add non-empty blocks
+                    if (!this.isBlockHidden(x, y, z)) { // Only add non-empty blocks
                         matrix.setPosition(x+0.5, y+0.5, z+0.5);
                         mesh.setMatrixAt(instanceId, matrix); // Aggiungiamo la matrice alla mesh
-                        mesh.setColorAt(instanceId, new THREE.Color(blockType.color)); // Set color based on block ID
                         this.setInstanceId(x, y, z, instanceId); // Set the instance ID in the data structure
                         mesh.count++;
                     }
                 }
             }
         }
-        this.add(mesh);
+        this.add(...Object.values(meshes)); // Add all meshes to the world group
     }
     /**
      * @param {number} x

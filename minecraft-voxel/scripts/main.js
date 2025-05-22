@@ -12,6 +12,8 @@ const renderer = new THREE.WebGLRenderer();
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x87CEEB); // Sky blue background
+renderer.shadowMap.enabled = true; // Enable shadow mapping
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Use soft shadows
 document.body.appendChild(renderer.domElement);
 
 // Camera setup
@@ -31,14 +33,21 @@ scene.add(world);
 
 // Lighting setup
 function setupLighting() {
-    const light1 = new THREE.DirectionalLight();
-    light1.position.set(5, 5, 5);
-    scene.add(light1);
+    const sun = new THREE.DirectionalLight();
+    sun.position.set(50, 50, 50); // Position the sun
+    sun.castShadow = true; // Enable shadow casting
+    sun.shadow.camera.near = 0.1; 
+    sun.shadow.camera.far = 100; // Adjust shadow camera far plane
+    sun.shadow.camera.left = -50; // Adjust shadow camera left plane
+    sun.shadow.camera.right = 50; // Adjust shadow camera right plane
+    sun.shadow.camera.top = 50; // Adjust shadow camera top plane
+    sun.shadow.camera.bottom = -50; // Adjust shadow camera bottom plane
+    sun.shadow.bias = -0.0005; // Bias to reduce shadow acne
+    scene.add(sun);
 
-    const light2 = new THREE.DirectionalLight(0xffffff, 0.5);
-    light2.position.set(-5, -5, -5);
-    scene.add(light2);
-
+    const shadowHelper = new THREE.CameraHelper(sun.shadow.camera);
+    shadowHelper.visible = false; // Hide the shadow camera helper by default
+    scene.add(shadowHelper);
     const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
     ambientLight.intensity = 0.5;
     scene.add(ambientLight);
