@@ -4,7 +4,9 @@ import { makeNoise2D } from 'open-simplex-noise';
 import { makeNoise3D } from 'open-simplex-noise';   
 import {RNG } from './rng.js';
 import { BLOCKS, resources } from './block.js';
+
 const geometry = new THREE.BoxGeometry(1, 1, 1);
+
 
 
 export class World extends THREE.Group{
@@ -152,6 +154,7 @@ export class World extends THREE.Group{
                 mesh.castShadow = true; // Enable shadow casting for the mesh
                 mesh.receiveShadow = true; // Enable shadow receiving for the mesh
                 mesh.name = blockType.name; // Set the name of the mesh to the block name
+
                 meshes[blockType.id] = mesh; // Store the mesh in the lookup table
             });
 

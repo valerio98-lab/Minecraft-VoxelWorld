@@ -46,8 +46,9 @@ function setupLighting() {
     scene.add(sun);
 
     const shadowHelper = new THREE.CameraHelper(sun.shadow.camera);
-    shadowHelper.visible = false; // Hide the shadow camera helper by default
+    shadowHelper.visible = false ; // Hide the shadow camera helper by default
     scene.add(shadowHelper);
+    
     const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
     ambientLight.intensity = 0.5;
     scene.add(ambientLight);
