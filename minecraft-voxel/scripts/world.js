@@ -171,7 +171,7 @@ export class World extends THREE.Group{
                     const instanceId = mesh.count;
 
                     if (!this.isBlockHidden(x, y, z)) { // Only add non-empty blocks
-                        matrix.setPosition(x+0.5, y+0.5, z+0.5);
+                        matrix.setPosition(x, y, z);
                         mesh.setMatrixAt(instanceId, matrix); // Aggiungiamo la matrice alla mesh
                         this.setInstanceId(x, y, z, instanceId); // Set the instance ID in the data structure
                         mesh.count++;

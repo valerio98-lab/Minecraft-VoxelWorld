@@ -1,74 +1,89 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { World } from './world';
-import { createUI } from './ui';
-
-const stats = new Stats();
-document.body.append(stats.dom);
+import { Player } from './player';
+import { Physics } from './physics';
+import { setupUI } from './ui';
 
 // Renderer setup
 const renderer = new THREE.WebGLRenderer();
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0x87CEEB); // Sky blue background
-renderer.shadowMap.enabled = true; // Enable shadow mapping
-renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Use soft shadows
+renderer.setClearColor(0x80a0e0);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(renderer.domElement);
 
 // Camera setup
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-camera.position.set(-32, 16, -32);
-camera.lookAt(new THREE.Vector3(0, 0, 0));
+const orbitCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+orbitCamera.position.set(-32, 32, 32);
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.target.set(16,0,16);
+const controls = new OrbitControls(orbitCamera, renderer.domElement);
+controls.target.set(32, 0, 32);
 controls.update();
 
 // Scene setup
 const scene = new THREE.Scene();
+const player = new Player(scene);
+const physics = new Physics(scene);
 const world = new World();
 world.generate();
 scene.add(world);
 
-// Lighting setup
 function setupLighting() {
-    const sun = new THREE.DirectionalLight();
-    sun.position.set(50, 50, 50); // Position the sun
-    sun.castShadow = true; // Enable shadow casting
-    sun.shadow.camera.near = 0.1; 
-    sun.shadow.camera.far = 100; // Adjust shadow camera far plane
-    sun.shadow.camera.left = -50; // Adjust shadow camera left plane
-    sun.shadow.camera.right = 50; // Adjust shadow camera right plane
-    sun.shadow.camera.top = 50; // Adjust shadow camera top plane
-    sun.shadow.camera.bottom = -50; // Adjust shadow camera bottom plane
-    sun.shadow.bias = -0.0005; // Bias to reduce shadow acne
-    scene.add(sun);
+  const sun = new THREE.DirectionalLight();
+  sun.intensity = 1.5;
+  sun.position.set(50, 50, 50);
+  sun.castShadow = true;
 
-    const shadowHelper = new THREE.CameraHelper(sun.shadow.camera);
-    shadowHelper.visible = false ; // Hide the shadow camera helper by default
-    scene.add(shadowHelper);
-    
-    const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
-    ambientLight.intensity = 0.5;
-    scene.add(ambientLight);
+  // Set the size of the sun's shadow box
+  sun.shadow.camera.left = -40;
+  sun.shadow.camera.right = 40;
+  sun.shadow.camera.top = 40;
+  sun.shadow.camera.bottom = -40;
+  sun.shadow.camera.near = 0.1;
+  sun.shadow.camera.far = 200;
+  sun.shadow.bias = -0.001;
+  scene.add(sun);
+
+  const ambient = new THREE.AmbientLight();
+  ambient.intensity = 0.2;
+  scene.add(ambient);
 }
 
-
-// Render loop
-function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-    stats.update();
-}
-
+// Events
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+  // Resize camera aspect ratio and renderer size to the new window size
+  orbitCamera.aspect = window.innerWidth / window.innerHeight;
+  orbitCamera.updateProjectionMatrix();
+  player.camera.aspect = window.innerWidth / window.innerHeight;
+  player.camera.updateProjectionMatrix();
+  
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+// UI Setup
+const stats = new Stats();
+document.body.appendChild(stats.dom);
+
+// Render loop
+let previousTime = performance.now();
+function animate() {
+  requestAnimationFrame(animate);
+
+  const currentTime = performance.now();
+  const dt = (currentTime - previousTime) / 1000;
+
+  player.update(dt);
+  player.updateBoundingCylinder();
+  physics.update(dt, player, world);
+  renderer.render(scene, player.controls.isLocked ? player.camera : orbitCamera);
+  stats.update();
+
+  previousTime = currentTime;
+}
+
+setupUI(world, player);
 setupLighting();
-createUI(world);
 animate();
