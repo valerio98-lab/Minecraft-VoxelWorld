@@ -69,14 +69,12 @@ document.body.appendChild(stats.dom);
 
 // Render loop
 let previousTime = performance.now();
-function animate() {
-  requestAnimationFrame(animate);
 
+function animate() {
   const currentTime = performance.now();
   const dt = (currentTime - previousTime) / 1000;
 
-  player.update(dt);
-  player.updateBoundingCylinder();
+  requestAnimationFrame(animate);
   physics.update(dt, player, world);
   renderer.render(scene, player.controls.isLocked ? player.camera : orbitCamera);
   stats.update();

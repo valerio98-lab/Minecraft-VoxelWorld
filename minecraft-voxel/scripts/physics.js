@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { BLOCKS } from './block';
 
 
 const collisionBoxMaterial = new THREE.MeshBasicMaterial({
@@ -8,32 +9,54 @@ const collisionBoxMaterial = new THREE.MeshBasicMaterial({
 });
 
 const collisionBoxGeometry = new THREE.BoxGeometry(1.001, 1.001, 1.001); // Slightly larger than the player to visualize collisions
+const contactGeometry = new THREE.SphereGeometry(0.1, 8, 8); // Small sphere to visualize contact points
+const contactMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00ff00,
+    wireframe: true,
+});
+
 
 export class Physics {
+    gravity = 32;
+    simulationRate = 250;
+    timestep = 1 / this.simulationRate; // Time step for the physics simulation, in seconds
+    accumulator = 0;
+
     constructor(scene, player) {
         this.helpers = new THREE.Group();  
+        this.helpers.visible = false; 
         scene.add(this.helpers); 
     }
 
 
     update(dt, player, world){
-        this.detectCollisions(player, world);
+        this.accumulator += dt;
+
+        while (this.accumulator >= this.timestep) {
+            player.velocity.y -= this.gravity * this.timestep; // Apply gravity to the player's vertical velocity
+            player.update(this.timestep); // Update the player's position based on input and velocity
+            this.detectCollisions(player, world); // Detect collisions with the world
+            this.accumulator -= this.timestep; // Reduce the accumulator by the time step
+        }
+        player.updateBoundingCylinder(); // Update the player's bounding cylinder position
     }
 
     detectCollisions(player, world){
+        player.onGround = false; // Reset onGround status for the new frame
+        this.helpers.clear();
+
         const possibleCollisions = this.BroadPhase(player, world); 
-        console.log("Possible Collisions:", possibleCollisions.length);
         const collisions = this.NarrowPhase(player, possibleCollisions);
 
         if (collisions.length > 0) {
-                this.resolveCollisions(collisions);
+                this.resolveCollisions(collisions, player);
         }
     }
 
     BroadPhase(player, world) {
         // Implement broad phase collision detection logic
         // This could be a simple bounding box check or spatial partitioning
-        this.removeCollisionBoxes(); // Clear previous collision boxes
+        //this.removeCollisionBoxes(); // Clear previous collision boxes
 
         const possibleCollisions = [];
 
@@ -55,22 +78,14 @@ export class Physics {
         for (let x = volume.x.min; x <= volume.x.max; x++) {
             for (let y = volume.y.min; y <= volume.y.max; y++) {
                 for (let z = volume.z.min; z <= volume.z.max; z++) {
-                    const block = world.getBlock(x, y, z);
-                    if (block!==undefined && block.id !== 0) { 
-                        console.log("Possible Collision at:", x, y, z);
-                        possibleCollisions.push(x, y, z);
-                        // if the collision box is already added, skip adding it again
-                        const existingBox = this.helpers.children.find(box => 
-                            box.position.x === x && 
-                            box.position.y === y && 
-                            box.position.z === z
-                        );
-                        if (!existingBox) {
-                            // Add a collision box to visualize the collision
-                            this.addCollisionBox(new THREE.Vector3(x, y, z));
-                        }
 
-                        // check if the block in addCollisionBox are still in collision
+                    const blockId = world.getBlock(x, y, z)?.id;
+
+                    if (blockId && blockId !== BLOCKS.empty.id) { 
+                        
+                        possibleCollisions.push(new THREE.Vector3(x, y, z));
+                        // Add a collision box to visualize the collision
+                        this.addCollisionBox(new THREE.Vector3(x, y, z));
                         
                     }
                 }
@@ -81,16 +96,108 @@ export class Physics {
     }
 
     NarrowPhase(player, possibleCollisions) {
-        //TODO
-        return [];
+        //this.removeContactPoints(); // Clear previous contact points
+
+        const collisions = [];
+        for (const block of possibleCollisions) {
+
+            // Closest point on the block w.r.t the player
+            const p = player.position;
+            const closestPoint = {
+                x: this.clamp(p.x, block.x - player.radius, block.x + player.radius),
+                y: this.clamp(p.y - player.height/2, block.y - player.radius, block.y + player.radius),
+                z: this.clamp(p.z, block.z - player.radius, block.z + player.radius)
+            };
+
+            //console.log("Closest point for block at:", block, "is:", closestPoint);
+
+            // Check if the player is colliding with the block
+            const collision = this.InCollisionWithBlock(player, closestPoint);
+            
+            if (collision.inCollision) {
+                const overlapY = (player.height / 2) - Math.abs(collision.dy);
+                const overlapXZ = player.radius - Math.sqrt(collision.dx * collision.dx + collision.dz * collision.dz);
+                
+                let normal, overlap;
+                if (overlapY < overlapXZ) {
+                    normal = new THREE.Vector3(0, -Math.sign(collision.dy), 0);
+                    overlap = overlapY;
+                    player.onGround = true;
+                } else {
+                    normal = new THREE.Vector3(-collision.dx, 0, -collision.dz).normalize();
+                    overlap = overlapXZ;
+                }
+                collisions.push({
+                    block,
+                    closestPoint,
+                    normal,
+                    overlap
+                });
+                //console.log("Last collision details:", block, "Closest Point:", collision.closestPoint, "Normal:", collision.normal, "Overlap:", collision.overlap);    
+
+                // Add a contact point to visualize the collision
+                this.addContactPoint(closestPoint);
+            }
+
+        }
+
+        //console.log("Narrow Collisions detected:", collisions.length);
+        return collisions;
+
     }
 
-    resolveCollisions(collisions) {
-        //TODO
-        // This method should handle the actual collision resolution logic
-        // For example, adjusting the player's position or velocity based on the collision normals
+    resolveCollisions(collisions, player) {
+
+        collisions.sort((a, b) =>{
+             return a.overlap < b.overlap
+            } ); // Sort by overlap to resolve the most significant collisions first
+        
+        for (const collision of collisions) {
+            col = this.InCollisionWithBlock(player, collision.closestPoint);
+            if (!col.inCollision) continue; 
+
+            //console.log("Resolving collision with block at:", collision.block, "Collision details:", collision);
+            let normalPosition = collision.normal.clone().multiplyScalar(collision.overlap);
+            player.position.add(normalPosition); // Adjust player's position based on the collision normal and overlap
+        
+            let magnitude = player.worldVelocity.dot(collision.normal);
+            let normalVelocity = collision.normal.clone().multiplyScalar(magnitude);
+           
+           player.ApplyBodyVelocity(normalVelocity.negate()); // Adjust player's velocity based on the collision normal
+        }
     }
 
+
+    clamp(player_point, boxMin, boxMax) {
+        return Math.max(boxMin, Math.min(player_point, boxMax));
+    }
+
+
+    /** * Checks if the closest points in the bounding cylinder of the player are within the block's bounds
+     * @param {Object} player - The player object with position, radius, and height properties
+     * @param {Object} closestPoints - The closest points on the block to the player
+     * @returns {boolean} - Returns true if a collision is detected, false otherwise
+     */
+
+    InCollisionWithBlock(player, closestPoint) {
+        const dx = closestPoint.x - player.position.x;
+        const dy = closestPoint.y - (player.position.y - (player.height / 2));
+        const dz = closestPoint.z - player.position.z;
+        const squaredDistance = (dx*dx)+(dz*dz);
+
+        return {
+            inCollision: squaredDistance < (player.radius * player.radius) && Math.abs(dy) < (player.height / 2), 
+            dx: dx,
+            dy: dy,
+            dz: dz,
+        };
+    }
+
+    /**
+     * Adds a collision box to the scene to visualize the collision
+     * This is useful for debugging purposes to see where the collisions are happening
+     * @param {THREE.Vector3} position - The position where the collision box should be added
+     */
     addCollisionBox(position) {
         const box = new THREE.Mesh(collisionBoxGeometry, collisionBoxMaterial);
         box.position.copy(position);
@@ -100,14 +207,27 @@ export class Physics {
      * Removes all collision boxes from the scene from the previous frame
      * This is necessary to avoid cluttering the scene with old collision boxes
      */
-    removeCollisionBoxes() {
-        this.helpers.children.forEach(box => {
-            this.helpers.remove(box);
-            box.geometry.dispose();
-            box.material.dispose();
-        });
-        this.helpers.clear(); // Clear the group to remove all children
+    // removeCollisionBoxes() {
+    //     this.helpers.children.forEach(box => {
+    //         this.helpers.remove(box);
+    //         box.geometry.dispose();
+    //         box.material.dispose();
+    //     });
+    // }
+
+    addContactPoint(position) {
+        const contactPoint = new THREE.Mesh(contactGeometry, contactMaterial);
+        contactPoint.position.copy(position);
+        this.helpers.add(contactPoint);
     }
+
+    // removeContactPoints() {
+    //     this.helpers.children.forEach(contactPoint => {
+    //         this.helpers.remove(contactPoint);
+    //         contactPoint.geometry.dispose();
+    //         contactPoint.material.dispose();
+    //     });
+    // }
 
 
 }

@@ -4,6 +4,8 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 export class Player {
     radius = 0.5; // Player radius for collision detection
     height = 1.8; // Player height for collision detection
+    jumpSpeed = 10;
+    onGround = false;
 
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
     cameraHelper = new THREE.CameraHelper(this.camera);
@@ -12,6 +14,7 @@ export class Player {
     maxSpeed = 10;
     velocity = new THREE.Vector3();
     input = new THREE.Vector3();
+    #worldVelocity = new THREE.Vector3();
 
   constructor(scene) {
     this.position.set(32, 10, 32);
@@ -35,7 +38,28 @@ export class Player {
 
     scene.add(this.boundingCylinder);
   }
-  
+  /**
+   * Return the player velocity in world coordinates.
+   * 
+   */
+  get worldVelocity() {
+    this.#worldVelocity.copy(this.velocity);
+    this.#worldVelocity.applyEuler(new THREE.Euler(0, this.camera.rotation.y, 0)); // Apply camera rotation to velocity
+    return this.#worldVelocity;
+  }
+
+  /**
+   * 
+   * @param {*} v
+   * Returns the player velocity in body coordinates easily using the transpose of the world rotation matrix w.r.t yaw. 
+   */
+  ApplyBodyVelocity(v){
+    v.applyEuler(new THREE.Euler(0, -this.camera.rotation.y, 0)); // Apply camera rotation to velocity
+    this.velocity.add(v); // Add the velocity to the player's velocity
+  }
+
+
+
   /**
    * @param {Number} dt 
    */
@@ -45,6 +69,7 @@ export class Player {
       this.velocity.z = this.input.z;
       this.controls.moveRight(this.velocity.x * dt);
       this.controls.moveForward(this.velocity.z * dt);
+      this.position.y += this.velocity.y * dt; // Apply vertical velocity
 
       // only update the on-screen position if the element actually exists
       const posEl = document.getElementById('info-player-position');
@@ -72,7 +97,7 @@ export class Player {
    * @param {KeyboardEvent} event 
    */
   onKeyUp(event) {
-    console.log(`Key up: ${event.code}`);
+    //console.log(`Key up: ${event.code}`);
     switch (event.code) {
       case 'Escape':
         if (event.repeat) break;
@@ -104,7 +129,7 @@ export class Player {
    * @param {KeyboardEvent} event 
    */
   onKeyDown(event) {
-    console.log(`Key down: ${event.code}`);
+    //console.log(`Key down: ${event.code}`);
     switch (event.code) {
       case 'KeyW':
         this.input.z = this.maxSpeed;
@@ -123,6 +148,10 @@ export class Player {
         this.position.set(32, 10, 32);
         this.velocity.set(0, 0, 0);
         break;
+      case 'Space':
+        if (this.onGround) {
+          this.velocity.y += this.jumpSpeed; // Apply jump speed
+        }
     }
   }
 
