@@ -153,7 +153,8 @@ export class Physics {
             } ); // Sort by overlap to resolve the most significant collisions first
         
         for (const collision of collisions) {
-            col = this.InCollisionWithBlock(player, collision.closestPoint);
+            console.log("Resolving collision with player at:", player.position, "And Collision closest:", collision.closestPoint);
+            const col = this.InCollisionWithBlock(player, collision.closestPoint);
             if (!col.inCollision) continue; 
 
             //console.log("Resolving collision with block at:", collision.block, "Collision details:", collision);
@@ -203,31 +204,11 @@ export class Physics {
         box.position.copy(position);
         this.helpers.add(box); 
     }
-    /**
-     * Removes all collision boxes from the scene from the previous frame
-     * This is necessary to avoid cluttering the scene with old collision boxes
-     */
-    // removeCollisionBoxes() {
-    //     this.helpers.children.forEach(box => {
-    //         this.helpers.remove(box);
-    //         box.geometry.dispose();
-    //         box.material.dispose();
-    //     });
-    // }
 
     addContactPoint(position) {
         const contactPoint = new THREE.Mesh(contactGeometry, contactMaterial);
         contactPoint.position.copy(position);
         this.helpers.add(contactPoint);
     }
-
-    // removeContactPoints() {
-    //     this.helpers.children.forEach(contactPoint => {
-    //         this.helpers.remove(contactPoint);
-    //         contactPoint.geometry.dispose();
-    //         contactPoint.material.dispose();
-    //     });
-    // }
-
 
 }

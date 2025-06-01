@@ -73,41 +73,41 @@ export class World extends THREE.Group{
         const noise2D = makeNoise2D(seedInt); // Create a 2D noise generator
 
         // Pre-compute the sum of the magnitudes of all octaves in order to normalize the final noise value
-        let totalMagnitude = 0.0;
-        let ampTemp = 1.0;
-        for (let octave = 0; octave < this.params.terrain.octaves; octave++) {
-            totalMagnitude += ampTemp;
-            ampTemp *= this.params.terrain.persistence; // Decrease amplitude for the next octave
-        }
+        // let totalMagnitude = 0.0;
+        // let ampTemp = 1.0;
+        // for (let octave = 0; octave < this.params.terrain.octaves; octave++) {
+        //     totalMagnitude += ampTemp;
+        //     ampTemp *= this.params.terrain.persistence; // Decrease amplitude for the next octave
+        // }
 
         // Generate terrain using Perlin noise looping through each block in the world
         // and applying the noise function to determine the height of each block
         for (let x = 0; x < this.size.width; x++) {
             for (let z = 0; z < this.size.width; z++) {
-                let frequency = 1.0;
-                let amplitude = 1.0;
-                let noiseValue = 0.0;
+                // let frequency = 1.0;
+                // let amplitude = 1.0;
+                // let noiseValue = 0.0;
 
                 // Generate noise using multiple octaves 
-                for (let octave = 0; octave < this.params.terrain.octaves; octave++) {
-                    const sampleX = (x / this.params.terrain.scale) * frequency;
-                    const sampleZ = (z / this.params.terrain.scale) * frequency;
+                //for (let octave = 0; octave < this.params.terrain.octaves; octave++) {
+                    const sampleX = (x / this.params.terrain.scale) //* frequency;
+                    const sampleZ = (z / this.params.terrain.scale) //* frequency;
                     const raw = noise2D(sampleX, sampleZ); // Get the noise value for the current coordinates
                     
-                    noiseValue += raw * amplitude;
-                    // Update frequency and amplitude for the next octave
-                    frequency *= this.params.terrain.lacunarity; // Increase frequency
-                    amplitude *= this.params.terrain.persistence; // Decrease amplitude
-                }
+                    // noiseValue += raw * amplitude;
+                    // // Update frequency and amplitude for the next octave
+                    // frequency *= this.params.terrain.lacunarity; // Increase frequency
+                    // amplitude *= this.params.terrain.persistence; // Decrease amplitude
+                //}
 
                 // Normalize the final noise value to [0, 1]
-                const normalized = ((noiseValue / totalMagnitude) + 1) / 2; // firstly normalize to [-1, 1] then to [0, 1]
+                //const normalized = ((noiseValue / totalMagnitude) + 1) / 2; // firstly normalize to [-1, 1] then to [0, 1]
 
                 // magnitude and offset applied to the noise value
-                const scaledNoise = this.params.terrain.magnitude * normalized + this.params.terrain.offset;
+                const scaledNoise = this.params.terrain.magnitude + this.params.terrain.offset * raw;
 
                 let height = Math.floor(this.size.height * scaledNoise);
-                height = Math.max(0, Math.min(height, this.size.height)); // Clamp height to valid range
+                height = Math.max(0, Math.min(Math.floor(height), this.size.height-1)); // Clamp height to valid range
 
                 for (let y = 0; y < this.size.height; y++) {
                     if(y<height && this.getBlock(x, y, z).id === BLOCKS.empty.id) {

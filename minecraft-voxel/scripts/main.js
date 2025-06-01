@@ -82,6 +82,6 @@ function animate() {
   previousTime = currentTime;
 }
 
-setupUI(world, player);
+setupUI(world, player, physics);
 setupLighting();
 animate();

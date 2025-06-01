@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { World } from './world.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
 export class Player {
@@ -17,7 +18,9 @@ export class Player {
     #worldVelocity = new THREE.Vector3();
 
   constructor(scene) {
-    this.position.set(32, 10, 32);
+    this.position.set(32, 30, 32);
+    this.cameraHelper.visible = false; 
+    
     scene.add(this.camera);
     scene.add(this.cameraHelper);
     document.body.addEventListener('click', () => {
@@ -72,10 +75,11 @@ export class Player {
       this.position.y += this.velocity.y * dt; // Apply vertical velocity
 
       // only update the on-screen position if the element actually exists
-      const posEl = document.getElementById('info-player-position');
-      if (posEl) {
-        posEl.innerHTML = this.toString();
-      }
+      // const posEl = document.getElementById('info-player-position');
+      // if (posEl) {
+      //   posEl.innerHTML = this.toString();
+      // }
+      document.getElementById('info-player-position').innerHTML = this.toString();
     }
   }
 
