@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { World } from './world.js';
+import { WorldChunk } from './worldChunk';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
 export class Player {
@@ -18,7 +18,7 @@ export class Player {
     #worldVelocity = new THREE.Vector3();
 
   constructor(scene) {
-    this.position.set(32, 30, 32);
+    this.position.set(32, 80, 32);
     this.cameraHelper.visible = false; 
     
     scene.add(this.camera);

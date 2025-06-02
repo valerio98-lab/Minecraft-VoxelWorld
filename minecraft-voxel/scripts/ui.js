@@ -20,8 +20,8 @@ export function setupUI(world, player, physics) {
 
 
     const worldFolder = gui.addFolder('World');
-    worldFolder.add(world.size, 'width', 8, 128, 1).name('Width');
-    worldFolder.add(world.size, 'height', 8, 32, 1).name('Height');
+    worldFolder.add(world.WorldChunkSize, 'width', 8, 128, 1).name('Width');
+    worldFolder.add(world.WorldChunkSize, 'height', 8, 32, 1).name('Height');
 
 
     const terrainFolder = gui.addFolder('Terrain Parameters');

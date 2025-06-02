@@ -54,8 +54,8 @@ export const BLOCKS = {
         name: 'Stone',
         scale: {
             x: 50,
-            y: 50,
-            z: 50,
+            y: 20,
+            z: 30,
         },
         scarcity: 0.5, // Scarcity of stone blocks
         material: [new THREE.MeshLambertMaterial({ map: textures.stone }), 
@@ -70,11 +70,11 @@ export const BLOCKS = {
         id: 4,
         name: 'Coal Ore',
         scale: {
-            x: 20,
+            x: 30,
             y: 20,
-            z: 20,
+            z: 60,
         },
-        scarcity: 0.1, // Scarcity of coal ore blocks
+        scarcity: 0.4, // Scarcity of coal ore blocks
         material: [new THREE.MeshLambertMaterial({ map: textures.coalOre }), 
             new THREE.MeshLambertMaterial({ map: textures.coalOre }),
             new THREE.MeshLambertMaterial({ map: textures.coalOre }),
@@ -91,7 +91,7 @@ export const BLOCKS = {
             y: 60,
             z: 60,
         },
-        scarcity: 0.05, // Scarcity of iron ore blocks
+        scarcity: 0.5, // Scarcity of iron ore blocks
         material: [
             new THREE.MeshLambertMaterial({ map: textures.ironOre }),
             new THREE.MeshLambertMaterial({ map: textures.ironOre }),

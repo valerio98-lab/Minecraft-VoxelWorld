@@ -24,7 +24,7 @@ export class Physics {
 
     constructor(scene, player) {
         this.helpers = new THREE.Group();  
-        this.helpers.visible = false; 
+        this.helpers.visible = false;  
         scene.add(this.helpers); 
     }
 
@@ -153,7 +153,7 @@ export class Physics {
             } ); // Sort by overlap to resolve the most significant collisions first
         
         for (const collision of collisions) {
-            console.log("Resolving collision with player at:", player.position, "And Collision closest:", collision.closestPoint);
+            //console.log("Resolving collision with player at:", player.position, "And Collision closest:", collision.closestPoint);
             const col = this.InCollisionWithBlock(player, collision.closestPoint);
             if (!col.inCollision) continue; 
 
