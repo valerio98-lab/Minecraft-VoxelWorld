@@ -2,8 +2,12 @@ import {GUI} from 'three/addons/libs/lil-gui.module.min.js';
 import { resources } from './block';
 
 
-export function setupUI(world, player, physics) {
+export function setupUI(world, player, physics, scene) {
     const gui = new GUI();
+
+    const sceneFolder = gui.addFolder('Renderer');
+    sceneFolder.add(scene.fog, 'near', 0, 100, 1).name('Fog Near'); 
+    sceneFolder.add(scene.fog, 'far', 0, 200, 1).name('Fog Far');
 
 
     const playerFolder = gui.addFolder('Player');
@@ -22,6 +26,8 @@ export function setupUI(world, player, physics) {
     const worldFolder = gui.addFolder('World');
     worldFolder.add(world.WorldChunkSize, 'width', 8, 128, 1).name('Width');
     worldFolder.add(world.WorldChunkSize, 'height', 8, 32, 1).name('Height');
+    worldFolder.add(world, 'visibleDistance', 1, 10, 1).name('Visible Distance');
+    worldFolder.add(world, 'asyncLoading').name('Async Loading');
 
 
     const terrainFolder = gui.addFolder('Terrain Parameters');

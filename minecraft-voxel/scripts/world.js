@@ -3,8 +3,11 @@ import { WorldChunk } from './worldChunk';
 
 export class World extends THREE.Group{
 
-    visibleDistance = 1;
-    WorldChunkSize={width: 64, height: 16}
+
+    asyncLoading = true; // If true, chunks will be loaded asynchronously
+
+    visibleDistance = 3;
+    WorldChunkSize={width: 32, height: 32}
     printed = [];
 
 
@@ -132,7 +135,15 @@ export class World extends THREE.Group{
         const chunk = new WorldChunk(this.WorldChunkSize, this.params);
         chunk.position.set(x*this.WorldChunkSize.width, 0, z*this.WorldChunkSize.width);
         chunk.userData = {x,z};
-        chunk.generate();
+
+        if (this.asyncLoading) {
+            requestIdleCallback(chunk.generate.bind(chunk), {
+                timeout: 1000 // Set a timeout for the async generation
+            });
+        }
+        else{
+            chunk.generate();
+        }
         this.add(chunk);
         console.log(`Generated chunk at (${chunk.userData.x}, ${chunk.userData.z})`);
     }
@@ -148,7 +159,7 @@ export class World extends THREE.Group{
     getBlock(worldX, worldY, worldZ) {
         const {chunkCoords, blockInChunk} = this.worldToLocalChunk(worldX, worldY, worldZ);
         const chunk = this.getChunk(chunkCoords.x, chunkCoords.z);
-        if (chunk){
+        if (chunk && chunk.loaded){
             return chunk.getBlock(blockInChunk.x, blockInChunk.y, blockInChunk.z);
         }
         else {

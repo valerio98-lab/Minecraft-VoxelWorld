@@ -21,6 +21,7 @@ export class WorldChunk extends THREE.Group{
 
     constructor(size, params) {
         super();
+        this.loaded = false; // Flag to indicate if the chunk is loaded
         this.size = size;
         this.params = params; // Parameters for terrain generation
     }
@@ -33,6 +34,8 @@ export class WorldChunk extends THREE.Group{
         this.generateResources(seedInt);
         this.generateTerrain(seedInt);
         this.generateMeshes();
+
+        this.loaded = true; // Set loaded flag to true after generation
     }
     
     initializeTerrain() {

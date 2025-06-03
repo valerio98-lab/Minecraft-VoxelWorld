@@ -18,7 +18,7 @@ export class Player {
     #worldVelocity = new THREE.Vector3();
 
   constructor(scene) {
-    this.position.set(32, 80, 32);
+    this.position.set(32, 50, 32);
     this.cameraHelper.visible = false; 
     
     scene.add(this.camera);
@@ -149,7 +149,7 @@ export class Player {
         break;
       case 'KeyR':
         if (event.repeat) break;
-        this.position.set(32, 10, 32);
+        this.position.set(32, 50, 32);
         this.velocity.set(0, 0, 0);
         break;
       case 'Space':
