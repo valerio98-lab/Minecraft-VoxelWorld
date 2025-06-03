@@ -57,6 +57,17 @@ function setupLighting() {
   scene.add(ambient);
 }
 
+
+function onMouseDown(event){
+  if (player.controls.isLocked && player.selectedBlock) {
+    // If the player is looking at a block, remove it
+    console.log('Removing block:', player.selectedBlock);
+    world.removeBlock(player.selectedBlock.x, player.selectedBlock.y, player.selectedBlock.z);
+
+  }
+}
+document.addEventListener('mousedown', onMouseDown);
+
 // Events
 window.addEventListener('resize', () => {
   // Resize camera aspect ratio and renderer size to the new window size
@@ -80,6 +91,8 @@ function animate() {
   const dt = (currentTime - previousTime) / 1000;
 
   requestAnimationFrame(animate);
+  player.updateRay(world);
+  //console.log('Ciuccia la minchia');
   physics.update(dt, player, world);
   world.update(player);
 

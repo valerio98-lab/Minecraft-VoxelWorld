@@ -34,7 +34,7 @@ export class Physics {
 
         while (this.accumulator >= this.timestep) {
             player.velocity.y -= this.gravity * this.timestep; // Apply gravity to the player's vertical velocity
-            player.update(this.timestep); // Update the player's position based on input and velocity
+            player.updatePlayerInputs(this.timestep); // Update the player's position based on input and velocity
             this.detectCollisions(player, world); // Detect collisions with the world
             this.accumulator -= this.timestep; // Reduce the accumulator by the time step
         }

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { WorldChunk } from './worldChunk';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
+const CENTER_SCREEN = new THREE.Vector2();
 export class Player {
     radius = 0.5; // Player radius for collision detection
     height = 1.8; // Player height for collision detection
@@ -16,6 +17,9 @@ export class Player {
     velocity = new THREE.Vector3();
     input = new THREE.Vector3();
     #worldVelocity = new THREE.Vector3();
+
+    raycaster = new THREE.Raycaster(undefined, undefined, 0, 5);
+    selectedBlock = null; // The block the player is looking at
 
   constructor(scene) {
     this.position.set(32, 50, 32);
@@ -38,8 +42,14 @@ export class Player {
         new THREE.CylinderGeometry(this.radius, this.radius, this.height, 32),
         new THREE.MeshBasicMaterial({wireframe: true, color: 0xff0000})
     ); 
-
     scene.add(this.boundingCylinder);
+
+
+    this.RayHelper = new THREE.Mesh(
+      new THREE.BoxGeometry(1.01, 1.01, 1.01),
+      new THREE.MeshBasicMaterial({transparent: true, opacity: 0.3, color: 0xffffaa})
+    );
+    scene.add(this.RayHelper);
   }
   /**
    * Return the player velocity in world coordinates.
@@ -51,8 +61,40 @@ export class Player {
     return this.#worldVelocity;
   }
 
+  updateRay(world){
+    this.updateRaycaster(world);
+  }
+
+  updateRaycaster(world) {
+    this.raycaster.setFromCamera(CENTER_SCREEN, this.camera);
+    const intersects = this.raycaster.intersectObjects(world.children, true);
+    
+
+    if (intersects.length > 0) {
+      const firstIntersect = intersects[0];
+
+      //Get the position of the chunk that the block is cointained in 
+      const chunk = firstIntersect.object.parent;
+
+      // Get the transformation matrix of the intersected block
+      const blockMatrix = new THREE.Matrix4();
+      firstIntersect.object.getMatrixAt(firstIntersect.instanceId, blockMatrix);
+
+      //Extract the position of the block from the matrix 
+      this.selectedBlock = chunk.position.clone();
+      this.selectedBlock.applyMatrix4(blockMatrix);
+
+      this.RayHelper.position.copy(this.selectedBlock);
+      this.RayHelper.visible = true; // Show the ray helper
+      //console.log(this.selectedBlock);
+    } else {
+      this.selectedBlock = null;
+      this.RayHelper.visible = false; // Hide the ray helper if no intersection
+    }
+  } 
+
   /**
-   * 
+   *  
    * @param {*} v
    * Returns the player velocity in body coordinates easily using the transpose of the world rotation matrix w.r.t yaw. 
    */
@@ -66,7 +108,7 @@ export class Player {
   /**
    * @param {Number} dt 
    */
-  update(dt) {
+  updatePlayerInputs(dt) {
     if (this.controls.isLocked === true) {
       this.velocity.x = this.input.x;
       this.velocity.z = this.input.z;

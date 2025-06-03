@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { WorldChunk } from './worldChunk';
+import {debug} from './utils';
 
 export class World extends THREE.Group{
 
@@ -41,26 +42,15 @@ export class World extends THREE.Group{
         }
     }
 
-    debug(toprint, message = "Debugging Chunks") {
-        const check = this.printed.find(c => JSON.stringify(c) === JSON.stringify(toprint));
-        if (check) {
-            return null; // No need to print if the chunks haven't changed
-        
-        }
-        else {
-            this.printed.push(toprint);
-            console.log(message, toprint);
-        }
-    }
 
     update(player){
         const visibleChunks = this.getVisibleChunks(player);
-        this.debug(
-            visibleChunks.map(c => `${c.x},${c.z}`),
-            "Visible Chunks"
-        );
+        // debug(
+        //     visibleChunks.map(c => `${c.x},${c.z}`),
+        //     "Visible Chunks"
+        // );
         const chunksToDraw = this.getChunksToDraw(visibleChunks);
-        this.debug(chunksToDraw, "Chunks to Draw");
+        // debug(chunksToDraw, "Chunks to Draw");
         this.removeChunks(visibleChunks);
 
         for (const chunk of chunksToDraw) {
@@ -127,7 +117,7 @@ export class World extends THREE.Group{
         toRemove.forEach(chunk => {
             chunk.disposeInstances(); // Dispose of chunk instances if necessary
             this.remove(chunk); // Remove the chunk from the world
-            console.log(`Removed chunk at (${chunk.userData.x}, ${chunk.userData.z})`);
+            //console.log(`Removed chunk at (${chunk.userData.x}, ${chunk.userData.z})`);
         });
     }
 
@@ -145,7 +135,7 @@ export class World extends THREE.Group{
             chunk.generate();
         }
         this.add(chunk);
-        console.log(`Generated chunk at (${chunk.userData.x}, ${chunk.userData.z})`);
+        //console.log(`Generated chunk at (${chunk.userData.x}, ${chunk.userData.z})`);
     }
 
 
@@ -217,6 +207,22 @@ export class World extends THREE.Group{
                 child.disposeInstances();
         });
         this.clear();
+    }
+
+    /**
+     * Remove a block at the specified world coordinates.
+     * @param {number} worldX - The x coordinate in world space.
+     * @param {number} worldY - The y coordinate in world space.
+     * @param {number} worldZ - The z coordinate in world space.
+     * @param {Block} block - The block to remove.
+     */
+
+    removeBlock(worldX, worldY, worldZ) {
+        const {chunkCoords, blockInChunk} = this.worldToLocalChunk(worldX, worldY, worldZ);
+        const chunk = this.getChunk(chunkCoords.x, chunkCoords.z);
+        if (chunk && chunk.loaded) {
+            chunk.removeBlockInChunk(blockInChunk.x, blockInChunk.y, blockInChunk.z);
+        }
     }
 
 }

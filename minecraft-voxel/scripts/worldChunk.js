@@ -47,10 +47,6 @@ export class WorldChunk extends THREE.Group{
                 for (let z = 0; z < this.size.width; z++) {
                     row.push({
                         id: BLOCKS.empty.id, //if you put 0 here, it will not be rendered
-                                                                    // 0 is usually used for air or empty space
-                                                                    // 1 is usually used for grass or dirt
-                                                                    // 2 is usually used for stone or other solid blocks
-                                                                    // You can change these values to create different types of blocks
                         instanceId: null // Instance ID for instancing
                     });
                 }
@@ -155,7 +151,7 @@ export class WorldChunk extends THREE.Group{
                 mesh.count = 0;
                 mesh.castShadow = true; // Enable shadow casting for the mesh
                 mesh.receiveShadow = true; // Enable shadow receiving for the mesh
-                mesh.name = blockType.name; // Set the name of the mesh to the block name
+                mesh.name = blockType.id; // Set the name of the mesh to the block name
 
                 meshes[blockType.id] = mesh; // Store the mesh in the lookup table
             });
@@ -174,7 +170,8 @@ export class WorldChunk extends THREE.Group{
 
                     if (!this.isBlockHidden(x, y, z)) { // Only add non-empty blocks
                         matrix.setPosition(x, y, z);
-                        mesh.setMatrixAt(instanceId, matrix); // Aggiungiamo la matrice alla mesh
+                        mesh.setMatrixAt(instanceId, matrix); // Applichiamo la matrice alla mesh
+                        mesh.instanceMatrix.needsUpdate = true; // Mark the instance matrix as needing update
                         this.setInstanceId(x, y, z, instanceId); // Set the instance ID in the data structure
                         mesh.count++;
                     }
@@ -224,7 +221,8 @@ export class WorldChunk extends THREE.Group{
     }
 
     /**
-     * Set the instance id for the block at coordinates (x, y, z)
+     * Set the instance id for the block at coordinates (x, y, z), 
+     * in other words the number of the instance in the instanced mesh
      * @param {number} x
      * @param {number} y
      * @param {number} z
@@ -232,7 +230,7 @@ export class WorldChunk extends THREE.Group{
      */
     setInstanceId(x, y, z, instanceId) {
         if (this.inBounds(x, y, z)) {
-            this.data[x][y][z].instanceId = instanceId;
+            this.data[x][y][z].instanceId = instanceId; 
         }
     }
 
@@ -266,5 +264,39 @@ export class WorldChunk extends THREE.Group{
                 child.dispose();
         });
         this.clear();
+    }
+
+
+    /**
+     * Removes a block at the specified coordinates (x, y, z)
+     * @param {number} x - The x coordinate of the block to remove
+     * @param {number} y - The y coordinate of the block to remove
+     * @param {number} z - The z coordinate of the block to remove
+     */
+
+    removeBlockInChunk(x, y, z) {
+        const block = this.getBlock(x, y, z);
+        if (block && block.id !== BLOCKS.empty.id) {
+            const mesh = this.children.find(m => m.name === block.id);
+            const instanceId = block.instanceId;
+
+            const lastMatrix = new THREE.Matrix4();
+            mesh.getMatrixAt(mesh.count-1, lastMatrix); // Get the last matrix in the mesh
+            mesh.setMatrixAt(instanceId, lastMatrix); // Set the last matrix at the instanceId position
+
+            const pos = new THREE.Vector3();
+            lastMatrix.decompose(pos, new THREE.Quaternion(), new THREE.Vector3()); // Decompose the matrix to get the position
+            this.setInstanceId(
+                pos.x, 
+                pos.y, 
+                pos.z, 
+                mesh.count - 1); // Update the instance ID to the last one
+            mesh.count--; // Decrease the count of instances
+            mesh.instanceMatrix.needsUpdate = true; 
+            mesh.computeBoundingSphere(); // Update the bounding box of the mesh
+
+            this.setInstanceId(x, y, z, null); // Clear the instance ID for the block
+            this.setId(x, y, z, BLOCKS.empty.id); // Set the block ID to empty
+        }
     }
 }
