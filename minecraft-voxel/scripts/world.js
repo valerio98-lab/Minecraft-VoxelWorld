@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { WorldChunk } from './worldChunk';
 import {debug} from './utils';
+import { BLOCKS } from './block';
+import { DataStore } from './dataStore';
 
 export class World extends THREE.Group{
 
@@ -10,6 +12,7 @@ export class World extends THREE.Group{
     visibleDistance = 3;
     WorldChunkSize={width: 32, height: 32}
     printed = [];
+
 
 
     params = {
@@ -23,9 +26,10 @@ export class World extends THREE.Group{
             lacunarity: 2.0      // di quanto aumenta frequenza da un’ottava alla successiva
         }
     };
-
+    dataStore = new DataStore();
     constructor(seed=0){
         super();
+        this.dataStore.clear();
         this.seed = seed;
     }
 
@@ -33,7 +37,7 @@ export class World extends THREE.Group{
         this.disposeChunks(); // Clear existing chunks before generating new ones
         for (let x = -this.visibleDistance; x < this.visibleDistance; x ++) {
             for (let z = -this.visibleDistance; z < this.visibleDistance; z ++) {
-                const chunk = new WorldChunk(this.WorldChunkSize, this.params);
+                const chunk = new WorldChunk(this.WorldChunkSize, this.params, this.dataStore);
                 chunk.position.set(x*this.WorldChunkSize.width, 0, z*this.WorldChunkSize.width);
                 chunk.userData = {x,z};
                 chunk.generate();
@@ -122,7 +126,7 @@ export class World extends THREE.Group{
     }
 
     generateChunk(x, z) {
-        const chunk = new WorldChunk(this.WorldChunkSize, this.params);
+        const chunk = new WorldChunk(this.WorldChunkSize, this.params, this.dataStore);
         chunk.position.set(x*this.WorldChunkSize.width, 0, z*this.WorldChunkSize.width);
         chunk.userData = {x,z};
 
@@ -140,6 +144,74 @@ export class World extends THREE.Group{
 
 
     /**
+     * Remove a block at the specified world coordinates.
+     * @param {number} worldX - The x coordinate in world space.
+    * @param {number} worldY - The y coordinate in world space.
+    * @param {number} worldZ - The z coordinate in world space.
+    * @param {Block} block - The block to remove.
+    */
+   removeBlock(worldX, worldY, worldZ) { 
+    const dirs = [
+        [ 0,  1,  0], [ 0, -1,  0],
+        [ 1,  0,  0], [-1,  0,  0],
+        [ 0,  0,  1], [ 0,  0, -1],
+    ];
+
+        const { chunkCoords, blockInChunk } = this.worldToLocalChunk(worldX, worldY, worldZ);
+        const chunk = this.getChunk(chunkCoords.x, chunkCoords.z);
+    
+        if (!chunk) return;
+    
+        chunk.removeBlockInChunk(blockInChunk.x, blockInChunk.y, blockInChunk.z);
+        chunk.setId(blockInChunk.x, blockInChunk.y, blockInChunk.z, BLOCKS.empty.id);
+
+        for (const [dx, dy, dz] of dirs) {
+            const neighborX = worldX + dx;
+            const neighborY = worldY + dy;
+            const neighborZ = worldZ + dz;
+
+            const { chunkCoords: c, blockInChunk: b } = this.worldToLocalChunk(neighborX, neighborY, neighborZ);
+            const neighborChunk = this.getChunk(c.x, c.z);
+            if (!neighborChunk) continue;
+
+            const nBlock = neighborChunk.getBlock(b.x, b.y, b.z);
+            if (nBlock) neighborChunk.revealBlockInChunk(b.x, b.y, b.z);
+        }
+    }
+
+    addBlock(worldX, worldY, worldZ, blockId) {
+        const directions = [
+                [0, 1, 0],   // up
+                [0, -1, 0],  // down
+                [1, 0, 0],   // left
+                [-1, 0, 0],  // right
+                [0, 0, 1],   // forward
+                [0, 0, -1]   // back
+        ];
+
+        const {chunkCoords, blockInChunk} = this.worldToLocalChunk(worldX, worldY, worldZ);
+        const chunk = this.getChunk(chunkCoords.x, chunkCoords.z);
+        if (chunk) {
+            chunk.addBlockInChunk(blockInChunk.x, blockInChunk.y, blockInChunk.z, blockId);
+        }
+        for (const [dx, dy, dz] of directions) {
+            const neighborX = worldX + dx;
+            const neighborY = worldY + dy;
+            const neighborZ = worldZ + dz;
+            this.hideBlock(neighborX, neighborY, neighborZ);
+        }
+    }
+
+    hideBlock(worldX, worldY, worldZ) {
+        const {chunkCoords, blockInChunk} = this.worldToLocalChunk(worldX, worldY, worldZ);
+        const chunk = this.getChunk(chunkCoords.x, chunkCoords.z);
+        if (chunk && chunk.isBlockHidden(blockInChunk.x, blockInChunk.y, blockInChunk.z)) {
+            console.log(`Block at (${worldX}, ${worldY}, ${worldZ}) is already hidden.`);
+            chunk.removeBlockInChunk(blockInChunk.x, blockInChunk.y, blockInChunk.z);
+        }
+    }
+
+        /**
      * Retrieves a block at the specified world coordinates.
      * @param {number} worldX - The x coordinate in world space.
      * @param {number} worldY - The y coordinate in world space.
@@ -156,6 +228,7 @@ export class World extends THREE.Group{
             return null; // Chunk not found
         }
     }
+
     /**
      * Converts world coordinates to local chunk coordinates.
      * @param {number} x - The x coordinate in world space.
@@ -208,21 +281,4 @@ export class World extends THREE.Group{
         });
         this.clear();
     }
-
-    /**
-     * Remove a block at the specified world coordinates.
-     * @param {number} worldX - The x coordinate in world space.
-     * @param {number} worldY - The y coordinate in world space.
-     * @param {number} worldZ - The z coordinate in world space.
-     * @param {Block} block - The block to remove.
-     */
-
-    removeBlock(worldX, worldY, worldZ) {
-        const {chunkCoords, blockInChunk} = this.worldToLocalChunk(worldX, worldY, worldZ);
-        const chunk = this.getChunk(chunkCoords.x, chunkCoords.z);
-        if (chunk && chunk.loaded) {
-            chunk.removeBlockInChunk(blockInChunk.x, blockInChunk.y, blockInChunk.z);
-        }
-    }
-
 }

@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { World } from './world';
 import { Player } from './player';
 import { Physics } from './physics';
+import { BLOCKS } from './block';
 import { setupUI } from './ui';
 
 // Renderer setup
@@ -61,8 +62,14 @@ function setupLighting() {
 function onMouseDown(event){
   if (player.controls.isLocked && player.selectedBlock) {
     // If the player is looking at a block, remove it
-    console.log('Removing block:', player.selectedBlock);
-    world.removeBlock(player.selectedBlock.x, player.selectedBlock.y, player.selectedBlock.z);
+    if(player.activeBlockId === BLOCKS.empty.id) {
+      console.log('Removing block:', player.selectedBlock);
+      world.removeBlock(player.selectedBlock.x, player.selectedBlock.y, player.selectedBlock.z);
+    }
+    else {
+      console.log('Adding block:', player.selectedBlock);
+      world.addBlock(player.selectedBlock.x, player.selectedBlock.y, player.selectedBlock.z, player.activeBlockId);
+    }
 
   }
 }

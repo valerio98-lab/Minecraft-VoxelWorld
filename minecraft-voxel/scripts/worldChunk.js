@@ -19,11 +19,12 @@ export class WorldChunk extends THREE.Group{
     data = []; // 3D array to hold block data
 
 
-    constructor(size, params) {
+    constructor(size, params, dataStore) {
         super();
         this.loaded = false; // Flag to indicate if the chunk is loaded
         this.size = size;
         this.params = params; // Parameters for terrain generation
+        this.dataStore = dataStore; // Data store for managing chunk data
     }
 
     generate() {
@@ -33,6 +34,7 @@ export class WorldChunk extends THREE.Group{
         this.initializeTerrain();
         this.generateResources(seedInt);
         this.generateTerrain(seedInt);
+        this.loadPlayerChanges();
         this.generateMeshes();
 
         this.loaded = true; // Set loaded flag to true after generation
@@ -136,6 +138,20 @@ export class WorldChunk extends THREE.Group{
         });
     }
 
+    loadPlayerChanges() {
+        // Load player changes from the data store
+        for (let x = 0; x < this.size.width; x++) {
+            for (let y = 0; y < this.size.height; y++) {
+                for (let z = 0; z < this.size.width; z++) {
+                    const blockId = this.dataStore.get(this.position.x, this.position.z, x, y, z);
+                    if (blockId !== undefined && blockId !== BLOCKS.empty.id) {
+                        this.setId(x, y, z, blockId); // Set the block ID from the data store
+                    }
+                }
+            }
+        }
+    }
+
     generateMeshes(){
         this.clear(); // Clear previous blocks if any
 
@@ -175,12 +191,82 @@ export class WorldChunk extends THREE.Group{
                         this.setInstanceId(x, y, z, instanceId); // Set the instance ID in the data structure
                         mesh.count++;
                     }
+                    else {
+                        this.setInstanceId(x, y, z, null); // If the block is hidden, set instance ID to null
+                    }
                 }
             }
         }
         this.add(...Object.values(meshes)); // Add all meshes to the world group
     }
+
     /**
+     * Removes a block at the specified coordinates (x, y, z)
+     * @param {number} x - The x coordinate of the block to remove
+     * @param {number} y - The y coordinate of the block to remove
+     * @param {number} z - The z coordinate of the block to remove
+     */
+
+    removeBlockInChunk(x, y, z) {
+        const block = this.getBlock(x, y, z);
+        if (!block || block.id === BLOCKS.empty.id) return;
+
+        const mesh = this.children.find(m => m.name === block.id);
+        if (block.instanceId !== null && mesh) {
+            const lastIndex = mesh.count - 1;
+            const lastMatrix = new THREE.Matrix4();
+            mesh.getMatrixAt(lastIndex, lastMatrix);
+            mesh.setMatrixAt(block.instanceId, lastMatrix);
+            const pos = new THREE.Vector3();
+            lastMatrix.decompose(pos, new THREE.Quaternion(), new THREE.Vector3());
+            this.setInstanceId(pos.x, pos.y, pos.z, block.instanceId);
+            mesh.count--;
+            mesh.instanceMatrix.needsUpdate = true;
+        }
+        this.setInstanceId(x, y, z, null);
+        this.dataStore.set(this.position.x, this.position.z, x, y, z, BLOCKS.empty.id); // Remove the block from the data store
+        }
+
+    revealBlockInChunk(x, y, z) {
+        const block = this.getBlock(x, y, z);
+        if (!block || block.id === BLOCKS.empty.id || block.instanceId !== null) return;
+        const mesh = this.children.find(m => m.name === block.id);
+
+        if (mesh) { 
+            const instanceId = mesh.count++;      
+            this.setInstanceId(x, y, z, instanceId);  
+
+            const matrix = new THREE.Matrix4();
+            matrix.setPosition(x, y, z);
+            mesh.setMatrixAt(instanceId, matrix);
+            mesh.instanceMatrix.needsUpdate = true;
+            mesh.computeBoundingSphere();
+        }
+
+    }
+
+    addBlockInChunk(x, y, z, blockId) {
+        const block = this.getBlock(x, y, z);
+        if (block && block.id === BLOCKS.empty.id) {
+            this.setId(x, y, z, blockId); 
+            this.dataStore.set(this.position.x, this.position.z, x, y, z, blockId); // Store the block in the data store
+            const mesh = this.children.find(m => m.name === blockId);
+            if (mesh) {
+                const instanceId = mesh.count++; 
+                this.setInstanceId(x, y, z, instanceId); 
+
+                const matrix = new THREE.Matrix4();
+                matrix.setPosition(x, y, z);
+                mesh.setMatrixAt(instanceId, matrix);
+                mesh.instanceMatrix.needsUpdate = true;
+                mesh.computeBoundingSphere(); 
+            }
+
+
+        }
+    }
+
+        /**
      * @param {number} x
      * @param {number} y
      * @param {number} z
@@ -252,51 +338,19 @@ export class WorldChunk extends THREE.Group{
             [0, 0, -1]   // back
         ];
 
-        return directions.every(([dx, dy, dz]) => {
+        for (const [dx, dy, dz] of directions) {
             const neighbor = this.getBlock(x + dx, y + dy, z + dz);
-            return neighbor && neighbor.id !== BLOCKS.empty.id;
-        });
+            if (!neighbor || neighbor.id === BLOCKS.empty.id) {
+                return false; // If any neighbor is empty, the block is not hidden
+            }
+        }
+        return true; // All neighbors are solid, the block is hidden
     }
-
     disposeInstances() {
         this.traverse((child) => {
             if(child.dispose)
                 child.dispose();
         });
         this.clear();
-    }
-
-
-    /**
-     * Removes a block at the specified coordinates (x, y, z)
-     * @param {number} x - The x coordinate of the block to remove
-     * @param {number} y - The y coordinate of the block to remove
-     * @param {number} z - The z coordinate of the block to remove
-     */
-
-    removeBlockInChunk(x, y, z) {
-        const block = this.getBlock(x, y, z);
-        if (block && block.id !== BLOCKS.empty.id) {
-            const mesh = this.children.find(m => m.name === block.id);
-            const instanceId = block.instanceId;
-
-            const lastMatrix = new THREE.Matrix4();
-            mesh.getMatrixAt(mesh.count-1, lastMatrix); // Get the last matrix in the mesh
-            mesh.setMatrixAt(instanceId, lastMatrix); // Set the last matrix at the instanceId position
-
-            const pos = new THREE.Vector3();
-            lastMatrix.decompose(pos, new THREE.Quaternion(), new THREE.Vector3()); // Decompose the matrix to get the position
-            this.setInstanceId(
-                pos.x, 
-                pos.y, 
-                pos.z, 
-                mesh.count - 1); // Update the instance ID to the last one
-            mesh.count--; // Decrease the count of instances
-            mesh.instanceMatrix.needsUpdate = true; 
-            mesh.computeBoundingSphere(); // Update the bounding box of the mesh
-
-            this.setInstanceId(x, y, z, null); // Clear the instance ID for the block
-            this.setId(x, y, z, BLOCKS.empty.id); // Set the block ID to empty
-        }
     }
 }

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { WorldChunk } from './worldChunk';
+import { BLOCKS } from './block';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
 const CENTER_SCREEN = new THREE.Vector2();
@@ -20,6 +21,7 @@ export class Player {
 
     raycaster = new THREE.Raycaster(undefined, undefined, 0, 5);
     selectedBlock = null; // The block the player is looking at
+    activeBlockId = BLOCKS.grass.id; // The block type the player is currently interacting with
 
   constructor(scene) {
     this.position.set(32, 50, 32);
@@ -42,6 +44,7 @@ export class Player {
         new THREE.CylinderGeometry(this.radius, this.radius, this.height, 32),
         new THREE.MeshBasicMaterial({wireframe: true, color: 0xff0000})
     ); 
+    this.boundingCylinder.visible = false; // Hide the bounding cylinder by default
     scene.add(this.boundingCylinder);
 
 
@@ -83,6 +86,11 @@ export class Player {
       //Extract the position of the block from the matrix 
       this.selectedBlock = chunk.position.clone();
       this.selectedBlock.applyMatrix4(blockMatrix);
+
+      // if we are adding a block to the world move the selection indicator to the nearest block face
+      if (this.activeBlockId !== BLOCKS.empty.id) {
+        this.selectedBlock.add(firstIntersect.normal)
+      }
 
       this.RayHelper.position.copy(this.selectedBlock);
       this.RayHelper.visible = true; // Show the ray helper
@@ -177,6 +185,15 @@ export class Player {
   onKeyDown(event) {
     //console.log(`Key down: ${event.code}`);
     switch (event.code) {
+      case 'Digit0':
+      case 'Digit1':
+      case 'Digit2':
+      case 'Digit3':
+      case 'Digit4':
+      case 'Digit5':
+        this.activeBlockId = Number(event.code.replace('Digit', ''));
+        console.log(`Active block set to: ${this.activeBlockId}`);
+        break;
       case 'KeyW':
         this.input.z = this.maxSpeed;
         break;
