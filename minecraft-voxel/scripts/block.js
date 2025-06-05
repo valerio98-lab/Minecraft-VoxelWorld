@@ -17,6 +17,15 @@ const textures = {
     stone: loadTexture('textures/stone.png'),
     coalOre: loadTexture('textures/coal_ore.png'),
     ironOre: loadTexture('textures/iron_ore.png'),
+    leaves: loadTexture('textures/leaves.png'),
+    treeSide: loadTexture('textures/tree_side.png'),
+    treeTop: loadTexture('textures/tree_top.png'),
+    //water: loadTexture('textures/water.png'),
+    sand: loadTexture('textures/sand.png'),
+    cherryLeaves: loadTexture('textures/cherry_leaves.png'),
+    jungleTreeSide: loadTexture('textures/jungle_tree_side.png'),
+    jungleTreeTop: loadTexture('textures/jungle_tree_top.png'),
+    jungleLeaves: loadTexture('textures/jungle_leaves.png'),
 };
 
 
@@ -102,7 +111,93 @@ export const BLOCKS = {
 
         ]
     },
+    leaves: {
+        id: 6,
+        name: 'Leaves',
+        material: [
+            new THREE.MeshLambertMaterial({ map: textures.leaves }),
+            new THREE.MeshLambertMaterial({ map: textures.leaves }),
+            new THREE.MeshLambertMaterial({ map: textures.leaves }),
+            new THREE.MeshLambertMaterial({ map: textures.leaves }),
+            new THREE.MeshLambertMaterial({ map: textures.leaves }),
+            new THREE.MeshLambertMaterial({ map: textures.leaves })
+        ]
+    },
+    tree:{
+        id: 7,
+        name: 'Tree',
+        material: [
+            new THREE.MeshLambertMaterial({ map: textures.treeSide }),
+            new THREE.MeshLambertMaterial({ map: textures.treeSide }),
+            new THREE.MeshLambertMaterial({ map: textures.treeTop }),
+            new THREE.MeshLambertMaterial({ map: textures.treeTop }),
+            new THREE.MeshLambertMaterial({ map: textures.treeSide }),
+            new THREE.MeshLambertMaterial({ map: textures.treeSide })
+        ]
+    },
+    sand: {
+    id: 8,
+    name: 'Sand',
+    material: [
+        new THREE.MeshLambertMaterial({ map: textures.sand }),
+        new THREE.MeshLambertMaterial({ map: textures.sand }),
+        new THREE.MeshLambertMaterial({ map: textures.sand }),
+        new THREE.MeshLambertMaterial({ map: textures.sand }),
+        new THREE.MeshLambertMaterial({ map: textures.sand }),
+        new THREE.MeshLambertMaterial({ map: textures.sand })
+    ]
+    },
+    cloud: {
+    id: 9,
+    name: 'cloud',
+    material: [
+        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: true, opacity: 0.5 }),
+        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: true, opacity: 0.5 }),           
+        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: true, opacity: 0.5 }),    
+        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: true, opacity: 0.5 }),    
+        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: true, opacity: 0.5 }),    
+        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: true, opacity: 0.5 }),    
+        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: true, opacity: 0.5 }),    
+    ]
+    },
+    jungleTree: {
+        id: 10,
+        name: 'Jungle Tree',
+        material: [
+            new THREE.MeshLambertMaterial({ map: textures.jungleTreeSide }),
+            new THREE.MeshLambertMaterial({ map: textures.jungleTreeSide }),
+            new THREE.MeshLambertMaterial({ map: textures.jungleTreeTop }),
+            new THREE.MeshLambertMaterial({ map: textures.jungleTreeTop }),
+            new THREE.MeshLambertMaterial({ map: textures.jungleTreeSide }),
+            new THREE.MeshLambertMaterial({ map: textures.jungleTreeSide })
+        ]
+    }, 
+    cherryLeaves: {
+        id: 11,
+        name: 'Jungle Leaves',
+        material: [
+            new THREE.MeshLambertMaterial({ map: textures.cherryLeaves }),
+            new THREE.MeshLambertMaterial({ map: textures.cherryLeaves }),
+            new THREE.MeshLambertMaterial({ map: textures.cherryLeaves }),
+            new THREE.MeshLambertMaterial({ map: textures.cherryLeaves }),
+            new THREE.MeshLambertMaterial({ map: textures.cherryLeaves }),
+            new THREE.MeshLambertMaterial({ map: textures.cherryLeaves })
+        ]
+    }, 
+    jungleLeaves: {
+        id: 12,
+        name: 'Jungle Leaves',
+        material: [
+            new THREE.MeshLambertMaterial({ map: textures.jungleLeaves }),
+            new THREE.MeshLambertMaterial({ map: textures.jungleLeaves }),
+            new THREE.MeshLambertMaterial({ map: textures.jungleLeaves }),
+            new THREE.MeshLambertMaterial({ map: textures.jungleLeaves }),
+            new THREE.MeshLambertMaterial({ map: textures.jungleLeaves }),
+            new THREE.MeshLambertMaterial({ map: textures.jungleLeaves })
+        ]
+    },  
 }
+
 
 export const resources = [
     BLOCKS.coalOre,

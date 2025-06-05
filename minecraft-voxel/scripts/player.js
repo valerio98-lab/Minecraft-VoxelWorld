@@ -183,7 +183,6 @@ export class Player {
    * @param {KeyboardEvent} event 
    */
   onKeyDown(event) {
-    //console.log(`Key down: ${event.code}`);
     switch (event.code) {
       case 'Digit0':
       case 'Digit1':
@@ -191,6 +190,10 @@ export class Player {
       case 'Digit3':
       case 'Digit4':
       case 'Digit5':
+      case 'Digit6':
+      case 'Digit7':
+      case 'Digit8':
+      case 'Digit9':
         this.activeBlockId = Number(event.code.replace('Digit', ''));
         console.log(`Active block set to: ${this.activeBlockId}`);
         break;

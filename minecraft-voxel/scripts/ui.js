@@ -13,7 +13,6 @@ export function setupUI(world, player, physics, scene) {
     const playerFolder = gui.addFolder('Player');
     playerFolder.add(player, 'maxSpeed', 1, 20, 0.1).name('Max Speed');
     playerFolder.add(player, 'jumpSpeed', 1, 10, 0.1).name('Jump Speed');
-    player
     playerFolder.add(player.boundingCylinder, 'visible').name('Show Player Bounds');
     playerFolder.add(player.cameraHelper, 'visible').name('Show Camera Helper');
 
@@ -35,9 +34,17 @@ export function setupUI(world, player, physics, scene) {
     terrainFolder.add(world.params.terrain, 'scale', 1, 100, 1).name('Scale');
     terrainFolder.add(world.params.terrain, 'magnitude', 0, 1, 0.01).name('Magnitude');
     terrainFolder.add(world.params.terrain, 'offset', 0, 1, 0.01).name('Offset');
-    terrainFolder.add(world.params.terrain, 'octaves', 1, 8, 1).name('Octaves');
-    terrainFolder.add(world.params.terrain, 'persistence', 0, 1, 0.01).name('Persistence');
-    terrainFolder.add(world.params.terrain, 'lacunarity', 1, 4, 0.01).name('Lacunarity');
+    // terrainFolder.add(world.params.terrain, 'octaves', 1, 8, 1).name('Octaves');
+    // terrainFolder.add(world.params.terrain, 'persistence', 0, 1, 0.01).name('Persistence');
+    // terrainFolder.add(world.params.terrain, 'lacunarity', 1, 4, 0.01).name('Lacunarity');
+
+    const treesFolder = gui.addFolder('Tree Parameters');
+    treesFolder.add(world.params.trees, 'frequency', 0, 1, 0.007).name('Tree Density');
+    treesFolder.add(world.params.trees.trunk, 'minHeight', 1, 10, 1).name('Min Height');
+    treesFolder.add(world.params.trees.trunk, 'maxHeight', 1, 20, 1).name('Max Height');
+    treesFolder.add(world.params.trees.canopy, 'minRadius', 0.1, 5, 0.1).name('Min Canopy Radius');
+    treesFolder.add(world.params.trees.canopy, 'maxRadius', 0.1, 5, 0.1).name('Max Canopy Radius');
+    treesFolder.add(world.params.trees.canopy, 'density', 0, 1, 0.01).name('Canopy Density');
 
     const resourcesFolder = gui.addFolder('Resource Parameters');
     
@@ -55,3 +62,16 @@ export function setupUI(world, player, physics, scene) {
         world.generate();
     });
 }
+
+        // trees:{
+        //     trunk: {
+        //         minHeight: 3, // altezza minima del tronco
+        //         maxHeight: 7, // altezza massima del tronco
+        //     },
+        //     canopy: {
+        //         minRadius: 1, // raggio minimo della chioma
+        //         maxRadius: 4, // raggio massimo della chioma
+        //         density: 0.5, // densità della chioma (percentuale di blocchi foglia)
+        //     }, 
+        //     frequency: 0.05, // frequenza di generazione degli alberi
+        // }
