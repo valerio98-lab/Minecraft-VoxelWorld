@@ -4,6 +4,7 @@ import { makeNoise2D } from 'open-simplex-noise';
 import { makeNoise3D } from 'open-simplex-noise';   
 import {RNG } from './rng.js';
 import { BLOCKS, resources } from './block.js';
+import { TerrainCustomization } from './terrainCustomization.js';
 
 const geometry = new THREE.BoxGeometry(1, 1, 1);
 
@@ -25,6 +26,7 @@ export class WorldChunk extends THREE.Group{
         this.size = size;
         this.params = params; // Parameters for terrain generation
         this.dataStore = dataStore; // Data store for managing chunk data
+        this.TerrainCustomization = new TerrainCustomization(this); // Create an instance of TerrainCustomization
     }
 
     generate() {
@@ -34,7 +36,8 @@ export class WorldChunk extends THREE.Group{
         this.initializeTerrain();
         this.generateResources(seedInt);
         this.generateTerrain(seedInt);
-        this.generateTrees(seedInt); // Generate trees in the chunk
+        this.TerrainCustomization.generateTrees(seedInt); // Generate trees using TerrainCustomization
+        this.TerrainCustomization.generateClouds(seedInt); // Generate clouds using TerrainCustomization
         this.loadPlayerChanges();
         this.generateMeshes();
 
@@ -108,7 +111,10 @@ export class WorldChunk extends THREE.Group{
                 height = Math.max(0, Math.min(height, this.size.height-1)); // Clamp height to valid range
 
                 for (let y = 0; y < this.size.height; y++) {
-                    if(y<height && this.getBlock(x, y, z).id === BLOCKS.empty.id) {
+                    if (y <= this.params.terrain.waterOffset && y <= height) {
+                        this.setId(x, y, z, BLOCKS.sand.id);
+                    }
+                    else if(y<height && this.getBlock(x, y, z).id === BLOCKS.empty.id) {
                         this.setId(x, y, z, BLOCKS.dirt.id); // Set block ID to 1 (grass) up to the calculated height
                     } else if (y=== height) {
                         this.setId(x, y, z, BLOCKS.grass.id); // Set block ID to 1 (solid) up to the calculated height
@@ -153,113 +159,12 @@ export class WorldChunk extends THREE.Group{
         }
     }
 
-    generateTrees(seedInt) {
-        const noise2DHeight = makeNoise2D(seedInt + 1); // Create a separate noise generator for tree height
-        const noise3D = makeNoise3D(seedInt + 2); // Create a 3D noise generator for tree canopy
-
-        const BlockType = [[BLOCKS.tree, BLOCKS.leaves], [BLOCKS.jungleTree, BLOCKS.jungleLeaves], [BLOCKS.tree, BLOCKS.cherryLeaves]]; // Define block types for trees
-
-
-        const minH = this.params.trees.trunk.minHeight;
-        const maxH = this.params.trees.trunk.maxHeight;
-        const minR = this.params.trees.canopy.minRadius;
-        const maxR = this.params.trees.canopy.maxRadius;
-        const density = this.params.trees.canopy.density;
-
-        for (let x = 0; x < this.size.width; x++) {
-            const blockTreeType = BlockType[Math.floor(this.rng.random() * (BlockType.length))]; //se lo volessimo biased verso la posizione 0 potre
-            const blockID = blockTreeType[0].id; // Get the ID of the selected tree trunk block
-            const leavesID = blockTreeType[1].id; // Get the ID of the selected tree leaves block
-            for (let y=0; y < this.size.height; y++) {
-                for (let z = 0; z < this.size.width; z++) {
-                    const block = this.getBlock(x, y, z);
-                    
-                    
-                    if (block && block.id === BLOCKS.grass.id) { // Only generate trees on grass blocks
-                        if (this.rng.random() < this.params.trees.frequency) { 
-                            let raw = noise2DHeight((this.position.x + x), (this.position.z + z));
-                            const height = Math.max(Math.round(this.rng.random() * (maxH - minH)) + minH, minH); // Random height between min and max
-                            for (let h = y + 1; h < y + height; h++) {
-                                if (h < this.size.height) {
-                                    this.setId(x, h, z, blockID);
-                                }
-                            }
-
-                            // Generate leaves at the top of the trunk
-                            
-                            //let rawCanopy = noise3D((this.position.x + x) / 20, (this.position.y + y) / 20, (this.position.z + z) / 20);  
-                            const radius = Math.round(this.rng.random()*(maxR-minR)) + minR // Random radius between min and max
-                            
-                            console.log(`Generating tree at (${x}, ${y}, ${z}) with height ${height} and radius ${radius}`);
-                            for (let Cx=-radius; Cx <= radius; Cx++) {
-                                for (let Cy=-radius; Cy <= radius; Cy++) {
-                                    for (let Cz=-radius; Cz <= radius; Cz++) {
-                                        const distance = ((Cx * Cx) + (Cy * Cy) + (Cz * Cz));
-                                        if (distance <= (radius * radius)) { // Check if within the spherical radius
-                                                const leafX = x + Cx;
-                                                const leafY = y + height + Cy; // Leaves are generated above the trunk
-                                                const leafZ = z + Cz;
-                                                const leafBlock = this.getBlock(leafX, leafY, leafZ);
-
-                                                if (leafBlock && this.rng.random() < density) { // Only generate leaves on empty blocks
-                                                    this.setId(leafX, leafY, leafZ, leavesID); // Set the block ID to leaves
-
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-
-        // const generateTrunk = (x,z,rng) =>{
-        //  const minH = this.params.trees.trunk.minHeight;
-        //  const maxH = this.params.trees.trunk.maxHeight;
-        //  const height = Math.floor(this.rng.random() * (maxH - minH)) + minH; // Random height between min and max
-        //  for (let y = 0; y<this.size.height; y++) {
-        //     const block = this.getBlock(x, y, z);
-        //     if (block && block.id === BLOCKS.grass.id){
-        //         for (let h=y+1; h<y+height; h++) {
-        //             this.setId(x, h, z, BLOCKS.tree.id);
-        //         }
-        //         generateTrunk(x, y + height, z, rng); // Generate leaves at the top of the trunk
-        //     }
-        //  }
-        // }
-        // const generateLeaves = (Cx,Cy,Cz,rng) => {
-        //     const minR = this.params.trees.canopy.minRadius;
-        //     const maxR = this.params.trees.canopy.maxRadius;
-        //     const radius = Math.floor(this.rng.random() * (maxR - minR)) + minR; // Random height between min and max
-
-        //     for (let x = -radius; x < radius; x++) {
-        //         for (let y = -radius; y < radius; y++) {
-        //             for (let z = -radius; z < radius; z++) {
-        //                 const distance = ((x * x) + (y * y) + (z * z));
-        //                 if (distance <= (radius*radius)) {
-        //                     if(this.rng.random() < this.params.trees.frequency) { 
-        //                         const block = this.getBlock(Cx+x, Cy+y, Cz+z);
-        //                         if (block && block.id !== BLOCKS.empty.id) continue; // Only generate trees on grass blocks
-        //                         if (this.rng.random() < this.params.trees.canopy.density) { // Randomly decide whether to generate a tree
-        //                             this.setId(Cx+x, Cy+y, Cz+z, BLOCKS.leaves.id); // Set the block ID to tree
-        //                         }
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-
-}
-
     generateMeshes(){
         this.clear(); // Clear previous blocks if any
 
         // lookup table for block types
 
+        this.TerrainCustomization.generateWater(); // Generate water using TerrainCustomization
 
         const meshes = {}; 
         Object.values(BLOCKS)

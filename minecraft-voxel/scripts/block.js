@@ -151,13 +151,13 @@ export const BLOCKS = {
     id: 9,
     name: 'cloud',
     material: [
-        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: true, opacity: 0.5 }),
+        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: true, opacity: 0.8 }),
         new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: true, opacity: 0.5 }),           
-        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: true, opacity: 0.5 }),    
-        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: true, opacity: 0.5 }),    
-        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: true, opacity: 0.5 }),    
-        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: true, opacity: 0.5 }),    
-        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: true, opacity: 0.5 }),    
+        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: false, opacity: 0.5 }),    
+        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: false, opacity: 0.5 }),    
+        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: false, opacity: 0.5 }),    
+        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: false, opacity: 0.5 }),    
+        new THREE.MeshBasicMaterial({ color:0xf0f0f0, transparent: false, opacity: 0.5 }),    
     ]
     },
     jungleTree: {

@@ -21,6 +21,7 @@ export class World extends THREE.Group{
             scale: 20,           // scala base per l’ottava 0
             magnitude: 0.4,      // ampiezza complessiva (verrà applicata dopo)
             offset: 0.2,         // spostamento (così non avremo mai height = 0)
+            waterOffset: 10,
             //octaves: 4,          // numero di ottave
             //persistence: 0.9,    // di quanto diminuisce ampiezza da un’ottava alla successiva
             //lacunarity: 2.0      // di quanto aumenta frequenza da un’ottava alla successiva
@@ -32,10 +33,15 @@ export class World extends THREE.Group{
             },
             canopy: {
                 minRadius: 2, // raggio minimo della chioma
-                maxRadius: 3, // raggio massimo della chioma
-                density: 0.75, // densità della chioma (percentuale di blocchi foglia)
+                maxRadius: 4, // raggio massimo della chioma
+                density: 0.65, // densità della chioma (percentuale di blocchi foglia)
             }, 
-            frequency: 0.0009, // frequenza di generazione degli alberi
+            frequency: 0.003, // frequenza di generazione degli alberi
+        }, 
+        clouds: {
+            scale: 30,
+            density: 0.3
+            
         }
     };
     dataStore = new DataStore();

@@ -46,6 +46,10 @@ export function setupUI(world, player, physics, scene) {
     treesFolder.add(world.params.trees.canopy, 'maxRadius', 0.1, 5, 0.1).name('Max Canopy Radius');
     treesFolder.add(world.params.trees.canopy, 'density', 0, 1, 0.01).name('Canopy Density');
 
+    const cloudFolder = gui.addFolder('Cloud Parameters');
+    cloudFolder.add(world.params.clouds, 'scale', 0, 100, 1).name('Cloud Scale');
+    cloudFolder.add(world.params.clouds, 'density', 0, 1, 0.1).name('Cloud Density');
+
     const resourcesFolder = gui.addFolder('Resource Parameters');
     
     resources.forEach(resource =>{

@@ -27,6 +27,7 @@ export class Player {
     this.position.set(32, 50, 32);
     this.cameraHelper.visible = false; 
     
+    this.camera.layers.enable(1); // Enable layer 1 for the camera
     scene.add(this.camera);
     scene.add(this.cameraHelper);
     document.body.addEventListener('click', () => {
@@ -53,6 +54,8 @@ export class Player {
       new THREE.MeshBasicMaterial({transparent: true, opacity: 0.3, color: 0xffffaa})
     );
     scene.add(this.RayHelper);
+
+    this.raycaster.layers.set(0); // Set the raycaster to only intersect with blocks layer
   }
   /**
    * Return the player velocity in world coordinates.
