@@ -202,6 +202,7 @@ export class Player {
       case 'Digit7':
       case 'Digit8':
       case 'Digit9':
+      case 'Digit10':
         // Update the selected toolbar icon
         document.getElementById(`toolbar-${this.activeBlockId}`)?.classList.remove('selected');
         document.getElementById(`toolbar-${event.key}`)?.classList.add('selected');

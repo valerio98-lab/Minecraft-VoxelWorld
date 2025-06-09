@@ -21,7 +21,7 @@ export function save(world){
     }, 2000);
 }
 
-export function load(){
+export function load(){ 
     const params = localStorage.getItem('minecraft_params');
     const userData = localStorage.getItem('user_data');
     return {
