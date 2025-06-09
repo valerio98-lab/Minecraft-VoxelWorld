@@ -47,7 +47,7 @@ export class TerrainCustomization extends THREE.Group {
                             //let rawCanopy = noise3D((this.position.x + x) / 20, (this.position.y + y) / 20, (this.position.z + z) / 20);
                             const radius = Math.round(rng.random() * (maxR - minR)) + minR // Random radius between min and max
 
-                            console.log(`Generating tree at (${x}, ${y}, ${z}) with height ${height} and radius ${radius}`);
+                            // console.log(`Generating tree at (${x}, ${y}, ${z}) with height ${height} and radius ${radius}`);
                             
                             if (generationType === SLICE_GENERATION) {
                                 this.SliceLeavesGeneration(x, y, z, radius, height, leavesID, rng); // Generate leaves using slice generation
@@ -127,7 +127,7 @@ export class TerrainCustomization extends THREE.Group {
     }
 
     generateWater() {
-        console.log('Generating water plane for terrain customization');
+        //console.log('Generating water plane for terrain customization');
         const material = new THREE.MeshLambertMaterial({ color: 0x1E90FF, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
         const waterGeometry = new THREE.PlaneGeometry();
         const waterMesh = new THREE.Mesh(waterGeometry, material);

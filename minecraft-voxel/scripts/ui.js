@@ -63,19 +63,7 @@ export function setupUI(world, player, physics, scene) {
     })
 
     gui.onChange(() => {
-        world.generate();
+        world.generate(true);
     });
 }
 
-        // trees:{
-        //     trunk: {
-        //         minHeight: 3, // altezza minima del tronco
-        //         maxHeight: 7, // altezza massima del tronco
-        //     },
-        //     canopy: {
-        //         minRadius: 1, // raggio minimo della chioma
-        //         maxRadius: 4, // raggio massimo della chioma
-        //         density: 0.5, // densità della chioma (percentuale di blocchi foglia)
-        //     }, 
-        //     frequency: 0.05, // frequenza di generazione degli alberi
-        // }

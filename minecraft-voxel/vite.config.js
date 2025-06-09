@@ -2,7 +2,7 @@
 * @type {import('vite').UserConfig}
 */
 export default {
-  base: '/minecraft-threejs-clone/',
+  base: '/minecraft-voxelworld/',
   build: {
     sourcemap: true
   }

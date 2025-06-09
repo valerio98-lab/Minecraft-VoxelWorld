@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { WorldChunk } from './worldChunk';
 import { BLOCKS } from './block';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+import { Tool } from './tool';
 
 const CENTER_SCREEN = new THREE.Vector2();
 export class Player {
@@ -21,7 +22,9 @@ export class Player {
 
     raycaster = new THREE.Raycaster(undefined, undefined, 0, 5);
     selectedBlock = null; // The block the player is looking at
-    activeBlockId = BLOCKS.grass.id; // The block type the player is currently interacting with
+    activeBlockId = BLOCKS.empty.id; // The block type the player is currently interacting with
+
+    tool = new Tool();
 
   constructor(scene) {
     this.position.set(32, 50, 32);
@@ -35,6 +38,7 @@ export class Player {
             this.controls.lock();
         }
     });
+    this.camera.add(this.tool);
 
     // Add event listeners for keyboard/mouse events
     document.addEventListener('keyup', this.onKeyUp.bind(this));
@@ -69,6 +73,7 @@ export class Player {
 
   updateRay(world){
     this.updateRaycaster(world);
+    this.tool.update();
   }
 
   updateRaycaster(world) {
@@ -197,8 +202,12 @@ export class Player {
       case 'Digit7':
       case 'Digit8':
       case 'Digit9':
-        this.activeBlockId = Number(event.code.replace('Digit', ''));
-        console.log(`Active block set to: ${this.activeBlockId}`);
+        // Update the selected toolbar icon
+        document.getElementById(`toolbar-${this.activeBlockId}`)?.classList.remove('selected');
+        document.getElementById(`toolbar-${event.key}`)?.classList.add('selected');
+        this.activeBlockId = Number(event.key);
+        // Update the pickaxe visibility
+        this.tool.visible = (this.activeBlockId === 0);
         break;
       case 'KeyW':
         this.input.z = this.maxSpeed;

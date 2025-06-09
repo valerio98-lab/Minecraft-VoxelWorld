@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { WorldChunk } from './worldChunk';
-import {debug} from './utils';
+import {debug, save, load} from './utils';
 import { BLOCKS } from './block';
 import { DataStore } from './dataStore';
 
@@ -49,9 +49,34 @@ export class World extends THREE.Group{
         super();
         this.dataStore.clear();
         this.seed = seed;
+
+        document.addEventListener('keydown', (event) => {
+            switch(event.code){
+                case 'KeyS':
+                    if (event.altKey) {
+                        console.log('Imsaving');
+                        save(this);
+                    }
+                    break;
+                case 'KeyL':
+                    if (event.altKey) {
+                        console.log('Sborring');
+                        const {params, userData} = load(this);
+                        this.params = params || this.params;
+                        this.dataStore.data = userData || {};
+                        document.getElementById('load-status').innerHTML = 'Loading game...';
+                        setTimeout(() => document.getElementById('load-status').innerHTML = '', 2000);
+                        this.generate(false); // Regenerate the world with the loaded parameters
+                    }
+                    break;
+            }
+        })
     }
 
-    generate() {
+    generate(clearCache = false) {
+        if (clearCache) {
+            this.dataStore.clear(); // Clear the data store if needed
+        }
         this.disposeChunks(); // Clear existing chunks before generating new ones
         for (let x = -this.visibleDistance; x < this.visibleDistance; x ++) {
             for (let z = -this.visibleDistance; z < this.visibleDistance; z ++) {
@@ -67,12 +92,7 @@ export class World extends THREE.Group{
 
     update(player){
         const visibleChunks = this.getVisibleChunks(player);
-        // debug(
-        //     visibleChunks.map(c => `${c.x},${c.z}`),
-        //     "Visible Chunks"
-        // );
         const chunksToDraw = this.getChunksToDraw(visibleChunks);
-        // debug(chunksToDraw, "Chunks to Draw");
         this.removeChunks(visibleChunks);
 
         for (const chunk of chunksToDraw) {

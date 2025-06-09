@@ -6,6 +6,7 @@ import { Player } from './player';
 import { Physics } from './physics';
 import { BLOCKS } from './block';
 import { setupUI } from './ui';
+import { ModelLoader } from './modelLoader';
 
 // Renderer setup
 const renderer = new THREE.WebGLRenderer();
@@ -25,6 +26,12 @@ const controls = new OrbitControls(orbitCamera, renderer.domElement);
 controls.target.set(16, 0, 16);
 controls.update();
 
+const modelLoader = new ModelLoader();
+modelLoader.loadModels((models) => {
+  player.tool.setMesh(models.pickaxe);
+  
+});
+
 // Scene setup
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x80a0e0, 50, 150);
@@ -35,6 +42,7 @@ const sun = new THREE.DirectionalLight();
 
 world.generate();
 scene.add(world);
+
 
 
 function setupLighting() {
@@ -66,6 +74,7 @@ function onMouseDown(event){
     if(player.activeBlockId === BLOCKS.empty.id) {
       console.log('Removing block:', player.selectedBlock);
       world.removeBlock(player.selectedBlock.x, player.selectedBlock.y, player.selectedBlock.z);
+      player.tool.startAnimation(); // Start the tool animation when removing a block
     }
     else {
       console.log('Adding block:', player.selectedBlock);
