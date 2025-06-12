@@ -57,7 +57,7 @@ function setupLighting() {
   sun.shadow.camera.bottom = -100;
   sun.shadow.camera.near = 0.1;
   sun.shadow.camera.far = 200;
-  sun.shadow.bias = -0.001;
+  sun.shadow.bias = -0.0005;
   sun.shadow.mapSize = new THREE.Vector2(1024, 1024); // Higher resolution for better shadows
   scene.add(sun);
   scene.add(sun.target);

@@ -47,7 +47,6 @@ export class DataStore {
     set(chunkX, chunkZ, blockX, blockY, blockZ, blockId) {
         const key = this.getKey(chunkX, chunkZ, blockX, blockY, blockZ);
         this.data[key] = blockId;
-        console.log(`Set block at (${chunkX}, ${chunkZ}, ${blockX}, ${blockY}, ${blockZ}) to ID: ${blockId}`);
     }
 
     getKey(chunkX, chunkZ, blockX, blockY, blockZ) {

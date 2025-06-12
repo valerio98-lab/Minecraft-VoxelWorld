@@ -36,7 +36,7 @@ export class WorldChunk extends THREE.Group{
         this.initializeTerrain();
         this.generateResources(seedInt);
         this.generateTerrain(seedInt);
-        this.TerrainCustomization.generateTrees(seedInt); // Generate trees using TerrainCustomization
+        //this.TerrainCustomization.generateTrees(seedInt); // Generate trees using TerrainCustomization
         this.TerrainCustomization.generateClouds(seedInt); // Generate clouds using TerrainCustomization
         this.loadPlayerChanges();
         this.generateMeshes();
@@ -65,37 +65,14 @@ export class WorldChunk extends THREE.Group{
 
     generateTerrain(seedInt) {
         const noise2D = makeNoise2D(seedInt); // Create a 2D noise generator
-
-        // Pre-compute the sum of the magnitudes of all octaves in order to normalize the final noise value
-        // let totalMagnitude = 0.0;
-        // let ampTemp = 1.0;
-        // for (let octave = 0; octave < this.params.terrain.octaves; octave++) {
-        //     totalMagnitude += ampTemp;
-        //     ampTemp *= this.params.terrain.persistence; // Decrease amplitude for the next octave
-        // }
-
         // Generate terrain using Perlin noise looping through each block in the world
         // and applying the noise function to determine the height of each block
         for (let x = 0; x < this.size.width; x++) {
             for (let z = 0; z < this.size.width; z++) {
-                // let frequency = 1.0;
-                // let amplitude = 1.0;
-                // let noiseValue = 0.0;
-
-                // Generate noise using multiple octaves 
-                //for (let octave = 0; octave < this.params.terrain.octaves; octave++) {
-                    const sampleX = ((this.position.x + x) / this.params.terrain.scale) //* frequency;
-                    const sampleZ = ((this.position.z + z) / this.params.terrain.scale) //* frequency;
-                    const raw = noise2D(sampleX, sampleZ); // Get the noise value for the current coordinates in the range [-1, 1]
-                    
-                    // noiseValue += raw * amplitude;
-                    // // Update frequency and amplitude for the next octave
-                    // frequency *= this.params.terrain.lacunarity; // Increase frequency
-                    // amplitude *= this.params.terrain.persistence; // Decrease amplitude
-                //}
-
-                // Normalize the final noise value to [0, 1]
-                //const normalized = ((noiseValue / totalMagnitude) + 1) / 2; // firstly normalize to [-1, 1] then to [0, 1]
+                const biome = this.TerrainCustomization.getBiome(x,z,noise2D);
+                const sampleX = ((this.position.x + x) / this.params.terrain.scale) //* frequency;
+                const sampleZ = ((this.position.z + z) / this.params.terrain.scale) //* frequency;
+                const raw = noise2D(sampleX, sampleZ); // Get the noise value for the current coordinates in the range [-1, 1]
 
                 /**
                  * The magnitude represents the baseline of the terrain,
@@ -109,38 +86,43 @@ export class WorldChunk extends THREE.Group{
 
                 let height = Math.floor(this.size.height * scaledNoise);
                 height = Math.max(0, Math.min(height, this.size.height-1)); // Clamp height to valid range
-
+                
+                
                 for (let y = 0; y < this.size.height; y++) {
-                    if (y <= this.params.terrain.waterOffset && y <= height) {
+                    if (y <= this.params.terrain.waterOffset && y === height) {
                         this.setId(x, y, z, BLOCKS.sand.id);
                     }
+                    else if (y=== height) {
+                    
+                        if (biome==='desert') this.setId(x, y, z, BLOCKS.sand.id); 
+                        else if (biome==='temperate' || biome==='forest') this.setId(x, y, z, BLOCKS.grass.id);
+                        else if (biome==='tundra') this.setId(x, y, z, BLOCKS.snow.id);
+
+                        if (this.rng.random() < this.params.trees.frequency) {
+                            // Randomly generate trees based on the frequency parameter
+                            this.TerrainCustomization.generateTrees(x, height, z, biome, seedInt); // Generate a tree at the current position
+                        }
+                    
+                    }
                     else if(y<height && this.getBlock(x, y, z).id === BLOCKS.empty.id) {
-                        this.setId(x, y, z, BLOCKS.dirt.id); // Set block ID to 1 (grass) up to the calculated height
-                    } else if (y=== height) {
-                        this.setId(x, y, z, BLOCKS.grass.id); // Set block ID to 1 (solid) up to the calculated height
-                    } else if (y > height) {
-                        this.setId(x, y, z, BLOCKS.empty.id); // Set block ID to 0 (empty) above the calculated height
+                        this.generateResources(seedInt, x,y,z); // Set block ID to 1 (grass) up to the calculated height
                     }
                 }
             }
         }
     }
 
-    generateResources(seedInt) {
+    generateResources(seedInt, x,y,z) {
+        this.setId(x, y, z, BLOCKS.dirt.id); 
         const noise3D = makeNoise3D(seedInt); // Create a Simplex noise generator with the seed
         resources.forEach(resource => {
-            for (let x = 0; x < this.size.width; x++) {
-                for (let y = 0; y < this.size.height; y++) {
-                    for (let z = 0; z < this.size.width; z++) {
-                        const value = noise3D(
-                            (this.position.x + x) / resource.scale.x, 
-                            (this.position.y + y) / resource.scale.y, 
-                            (this.position.z + z) / resource.scale.z); // Generate noise value for the current block
-                        if (value > resource.scarcity) { // If the noise value is above a threshold, set a resource block
-                            this.setId(x, y, z, resource.id); // Set block ID to the resource ID
-                        }
-                    }
-                }
+            const value = noise3D(
+                (this.position.x + x) / resource.scale.x,
+                (this.position.y + y) / resource.scale.y,
+                (this.position.z + z) / resource.scale.z
+            ); // Generate noise value for the current block
+            if (value > resource.scarcity) { // If the noise value is above a threshold, set a resource block
+                this.setId(x, y, z, resource.id); // Set block ID to the resource ID
             }
         });
     }

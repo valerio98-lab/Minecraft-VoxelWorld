@@ -9,7 +9,7 @@ export class World extends THREE.Group{
 
     asyncLoading = true; // If true, chunks will be loaded asynchronously
 
-    visibleDistance = 3;
+    visibleDistance = 2;
     WorldChunkSize={width: 32, height: 32}
     printed = [];
 
@@ -21,26 +21,37 @@ export class World extends THREE.Group{
             scale: 20,           // scala base per l’ottava 0
             magnitude: 0.4,      // ampiezza complessiva (verrà applicata dopo)
             offset: 0.2,         // spostamento (così non avremo mai height = 0)
-            waterOffset: 10,
+            waterOffset: 8,
             //octaves: 4,          // numero di ottave
             //persistence: 0.9,    // di quanto diminuisce ampiezza da un’ottava alla successiva
             //lacunarity: 2.0      // di quanto aumenta frequenza da un’ottava alla successiva
         },
+        biomes:{
+            scale:50,
+            variation:{
+                amplitude:0.2,
+                scale:30
+            },
+            Tundra2Temperate: 0.25,
+            Temperate2Forest: 0.5,
+            Forest2Desert: 0.75,
+        },
         trees:{
             trunk: {
-                minHeight: 6, // altezza minima del tronco
-                maxHeight: 8, // altezza massima del tronco
+                minHeight: 4, // altezza minima del tronco
+                maxHeight: 10, // altezza massima del tronco
             },
             canopy: {
-                minRadius: 2, // raggio minimo della chioma
-                maxRadius: 4, // raggio massimo della chioma
-                density: 0.65, // densità della chioma (percentuale di blocchi foglia)
+                minRadius: 1, // raggio minimo della chioma
+                maxRadius: 10, // raggio massimo della chioma
+                density: 0.6, // densità della chioma (percentuale di blocchi foglia)
+                transparentRatio: 0.4, // rapporto di trasparenza della chioma (percentuale di blocchi foglia trasparenti)
             }, 
             frequency: 0.003, // frequenza di generazione degli alberi
         }, 
         clouds: {
             scale: 30,
-            density: 0.3
+            density: 0.0
             
         }
     };
@@ -54,13 +65,11 @@ export class World extends THREE.Group{
             switch(event.code){
                 case 'KeyS':
                     if (event.altKey) {
-                        console.log('Imsaving');
                         save(this);
                     }
                     break;
                 case 'KeyL':
                     if (event.altKey) {
-                        console.log('Sborring');
                         const {params, userData} = load(this);
                         this.params = params || this.params;
                         this.dataStore.data = userData || {};

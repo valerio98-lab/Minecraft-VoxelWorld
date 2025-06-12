@@ -12,49 +12,77 @@ export class TerrainCustomization extends THREE.Group {
         this.worldChunk = worldChunk; // Reference to the world chunk
     }
 
-    generateTrees(seedInt) {
+    generateTrees(x, y, z, biome, seedInt) {
         let rng = new RNG(seedInt); // Create a new RNG instance with the seed
-
-        const BlockType = [[BLOCKS.tree, BLOCKS.leaves, SPHERE_GENERATION], [BLOCKS.jungleTree, BLOCKS.jungleLeaves, SPHERE_GENERATION], [BLOCKS.tree, BLOCKS.cherryLeaves, SLICE_GENERATION]]; // Define block types for trees
-
 
         const minH = this.worldChunk.params.trees.trunk.minHeight;
         const maxH = this.worldChunk.params.trees.trunk.maxHeight;
+        const height = Math.max(Math.round(rng.random() * (maxH - minH)) + minH, minH); // Random height between min and max
+
+
+        for (let h = y; h < y + height; h++) {
+            if (biome === 'temperate' || biome === 'tundra') {
+                this.worldChunk.setId(x, h, z, BLOCKS.tree.id);
+            } else if (biome === 'forest') {
+                this.worldChunk.setId(x, h, z, BLOCKS.jungleTree.id);
+            } else if (biome === 'desert') {
+                this.worldChunk.setId(x, h, z, BLOCKS.cactus.id);
+            }
+        }
+
+        if (biome == 'temperate' || biome === 'forest') {
+            this.TreeCrownGeneration(rng, biome, x, y + height, z); // Generate tree crown
+        }
+    }
+
+
+    TreeCrownGeneration(rng, biome, x, y, z) {
+
+        const BlockType = [
+            [BLOCKS.tree, BLOCKS.leaves, BLOCKS.leaves_r1, SPHERE_GENERATION], //tree
+            [BLOCKS.tree, BLOCKS.cherryLeaves, BLOCKS.cherryLeaves_r1, SPHERE_GENERATION], //cherry tree
+            [BLOCKS.tree, BLOCKS.azalea_leaves, BLOCKS.azalea_flowers, SPHERE_GENERATION],
+            
+        ]; // Define block types for trees
+        
+        const blockTreeType = BlockType[Math.floor(Math.random() * (BlockType.length))]; 
+        const leavesID = [blockTreeType[1].id, blockTreeType[2].id];
+        const generationType = blockTreeType[3]; 
+
         const minR = this.worldChunk.params.trees.canopy.minRadius;
         const maxR = this.worldChunk.params.trees.canopy.maxRadius;
+        const radius = Math.round(rng.random() * (maxR - minR)) + minR // Random radius between min and max
 
-        for (let x = 0; x < this.worldChunk.size.width; x++) {
-            const blockTreeType = BlockType[Math.floor(rng.random() * (BlockType.length))]; //se lo volessimo biased verso la posizione 0 potre
-            const blockID = blockTreeType[0].id; // Get the ID of the selected tree trunk block
-            const leavesID = blockTreeType[1].id; // Get the ID of the selected tree leaves block
-            const generationType = blockTreeType[2]; // Get the generation type (slice or sphere)
-            for (let y=0; y < this.worldChunk.size.height; y++) {
-                for (let z = 0; z < this.worldChunk.size.width; z++) {
-                    const block = this.worldChunk.getBlock(x, y, z);
+        if (generationType === SPHERE_GENERATION) {
+            this.SphereLeavesGeneration(x, y, z, radius, leavesID, biome, rng); // Generate leaves using slice generation
+        } else if (generationType === SPHERE_GENERATION) {
+            this.SphereLeavesGeneration(x, y, z, radius, leavesID, biome, rng); // Generate leaves using sphere generation
+        }
+        
+    }
 
-
-                    if (block && block.id === BLOCKS.grass.id) { // Only generate trees on grass blocks
-                        if (rng.random() < this.worldChunk.params.trees.frequency) {
-                            const height = Math.max(Math.round(rng.random() * (maxH - minH)) + minH, minH); // Random height between min and max
-                            for (let h = y + 1; h < y + height; h++) {
-                                if (h < this.worldChunk.size.height) {
-                                    this.worldChunk.setId(x, h, z, blockID);
-                                }
+    SphereLeavesGeneration(x, y, z, radius, leavesID, biome, rng){
+        const density = this.worldChunk.params.trees.canopy.density;
+        for (let Cx=-radius; Cx <= radius; Cx++) {
+            for (let Cy=-radius; Cy <= radius; Cy++) {
+                for (let Cz=-radius; Cz <= radius; Cz++) {
+                    const distance = ((Cx * Cx) + (Cy * Cy) + (Cz * Cz));
+                    if (distance <= (radius * radius)) { // Check if within the spherical radius
+                        const leafX = x + Cx;
+                        const leafY = y + Cy; // Leaves are generated above the trunk
+                        const leafZ = z + Cz;
+                        const leafBlock = this.worldChunk.getBlock(leafX, leafY, leafZ);
+                        const ratio = this.worldChunk.params.trees.canopy.transparentRatio; // Ratio for transparent leaves
+                        console.log('ratio', ratio);
+                        let leaves = Math.random() < ratio ? leavesID[0] : leavesID[1]; // Randomly select a leaves ID from the array
+                        
+                        if (leafBlock && rng.random() < density && leafBlock.id === BLOCKS.empty.id) { // Only generate leaves on empty blocks
+                            if (biome === 'temperate' ) {
+                                this.worldChunk.setId(leafX, leafY, leafZ, leaves); // Set the block ID to leaves
                             }
-
-                            // Generate leaves at the top of the trunk
-
-                            //let rawCanopy = noise3D((this.position.x + x) / 20, (this.position.y + y) / 20, (this.position.z + z) / 20);
-                            const radius = Math.round(rng.random() * (maxR - minR)) + minR // Random radius between min and max
-
-                            // console.log(`Generating tree at (${x}, ${y}, ${z}) with height ${height} and radius ${radius}`);
-                            
-                            if (generationType === SLICE_GENERATION) {
-                                this.SliceLeavesGeneration(x, y, z, radius, height, leavesID, rng); // Generate leaves using slice generation
-                            } else if (generationType === SPHERE_GENERATION) {
-                                this.SphereLeavesGeneration(x, y, z, radius, height, leavesID, rng); // Generate leaves using sphere generation
+                            else if (biome === 'forest'){
+                                this.worldChunk.setId(leafX, leafY, leafZ, BLOCKS.jungleLeaves); // Set the block ID to jungle leaves
                             }
-                            
                         }
                     }
                 }
@@ -62,7 +90,9 @@ export class TerrainCustomization extends THREE.Group {
         }
     }
 
-    SliceLeavesGeneration(x, y, z, radius, height, leavesID, rng) {
+
+
+    SliceLeavesGeneration(x, y, z, radius, leavesID, biome, rng) {
         const density = this.worldChunk.params.trees.canopy.density;
         for (let Cy = 0; Cy <= radius; Cy++) {
             // radius shrinks as Cy increases:
@@ -71,40 +101,25 @@ export class TerrainCustomization extends THREE.Group {
                 // sweep out a square of side (2*layerRadius + 1)
                 for (let Cx = -layerRadius; Cx <= layerRadius; Cx++) {
                     for (let Cz = -layerRadius; Cz <= layerRadius; Cz++) {
+                        let leaves = leavesID[Math.floor(rng.random() * leavesID.length)]; // Randomly select a leaves ID from the array
                         const leafX = x + Cx;
-                        const leafY = y + height + Cy;  // up from the trunk
+                        const leafY = y + Cy;  // up from the trunk
                         const leafZ = z + Cz;
                         const leafBlock = this.worldChunk.getBlock(leafX, leafY, leafZ);
                         if (leafBlock && rng.random() < density  && leafBlock.id === BLOCKS.empty.id) {
-                            this.worldChunk.setId(leafX, leafY, leafZ, leavesID);
+                            if(biome=== 'temperate' ) {
+                                this.worldChunk.setId(leafX, leafY, leafZ, leaves); // Set the block ID to leaves
+                            }
+                            else if (biome === 'forest') {
+                                this.worldChunk.setId(leafX, leafY, leafZ, BLOCKS.jungleLeaves); // Set the block ID to jungle leaves
+                            }
                         }
                     }
                 }
+
             }
     }
 
-    SphereLeavesGeneration(x, y, z, radius, height, leavesID, rng){
-        const density = this.worldChunk.params.trees.canopy.density;
-        radius = radius - 1;
-        for (let Cx=-radius; Cx <= radius; Cx++) {
-            for (let Cy=-radius; Cy <= radius; Cy++) {
-                for (let Cz=-radius; Cz <= radius; Cz++) {
-                    const distance = ((Cx * Cx) + (Cy * Cy) + (Cz * Cz));
-                    if (distance <= (radius * radius)) { // Check if within the spherical radius
-                        const leafX = x + Cx;
-                        const leafY = y + height + Cy; // Leaves are generated above the trunk
-                        const leafZ = z + Cz;
-                        const leafBlock = this.worldChunk.getBlock(leafX, leafY, leafZ);
-
-                        if (leafBlock && rng.random() < density && leafBlock.id === BLOCKS.empty.id) { // Only generate leaves on empty blocks
-                            this.worldChunk.setId(leafX, leafY, leafZ, leavesID); // Set the block ID to leaves
-
-                        }
-                    }
-                }
-            }
-        }
-    }
 
 
 
@@ -144,6 +159,36 @@ export class TerrainCustomization extends THREE.Group {
         ); // Scale the water plane to cover the chunk
         waterMesh.layers.set(1); // Set the layer for water
         this.worldChunk.add(waterMesh); // Add the water mesh to the terrain customization group
+    }
+
+    /**
+     * Get the biome at a specific position in the world chunk.
+     * @param {number} x - The x coordinate relative to the world chunk.
+     * @param {number} z - The z coordinate relative to the world chunk.
+     * @param {number} seed - The seed for noise generation.
+     * @returns {string} - The biome type.
+     */
+    getBiome(x, z, noise) {
+        let raw = noise(
+            (this.worldChunk.position.x + x) / this.worldChunk.params.biomes.scale, 
+            (this.worldChunk.position.z + z) / this.worldChunk.params.biomes.scale
+        );
+        raw = (raw + 1) / 2; // Normalize to [0, 1]
+        raw += this.worldChunk.params.biomes.variation.amplitude * noise(
+            (this.worldChunk.position.x + x) / (this.worldChunk.params.biomes.variation.scale), 
+            (this.worldChunk.position.z + z) / (this.worldChunk.params.biomes.variation.scale)
+        );
+
+        if (raw < this.worldChunk.params.biomes.Tundra2Temperate){
+            return 'tundra';
+        }
+        else if (raw < this.worldChunk.params.biomes.Temperate2Forest) {
+            return 'temperate';
+        } else if (raw < this.worldChunk.params.biomes.Jungle2Desert) {
+            return 'forest';
+        } else {
+            return 'desert';
+        }
     }
 
 
