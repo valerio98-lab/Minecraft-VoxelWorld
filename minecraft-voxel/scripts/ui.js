@@ -42,7 +42,7 @@ export function setupUI(world, player, physics, scene) {
     const biomesFolder = gui.addFolder('Biome Parameters');
     biomesFolder.add(world.params.biomes, 'scale', 1, 300, 1).name('Temperature Scale');
     biomesFolder.add(world.params.biomes.variation, 'amplitude', 0, 1, 1).name('Amplitude');
-        biomesFolder.add(world.params.biomes.variation, 'scale', 0, 1, 1).name('Variation Scale');
+    biomesFolder.add(world.params.biomes.variation, 'scale', 0, 1, 1).name('Variation Scale');
     biomesFolder.add(world.params.biomes, 'Tundra2Temperate', 0.0, 1, 0.1).name('Tundra to Temperate');
     biomesFolder.add(world.params.biomes, 'Temperate2Forest', 0.0, 1, 0.1).name('Temperate to Forest');
     biomesFolder.add(world.params.biomes, 'Forest2Desert', 0.0, 1, 0.1).name('Forest to Desert');

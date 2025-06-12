@@ -7,7 +7,8 @@ import { BLOCKS, resources } from './block.js';
 import { TerrainCustomization } from './terrainCustomization.js';
 
 const geometry = new THREE.BoxGeometry(1, 1, 1);
-
+const noise3DCache = new Map(); // Cache for 3D noise to avoid re-creating it
+const noise2DCache = new Map(); // Cache for 2D noise to avoid re-creating it
 
 
 export class WorldChunk extends THREE.Group{
@@ -17,7 +18,7 @@ export class WorldChunk extends THREE.Group{
      * instanceId: number,
      * }[][][]}
      */
-    data = []; // 3D array to hold block data
+    data = []; // 3D array to hold block datas
 
 
     constructor(size, params, dataStore) {
@@ -34,9 +35,7 @@ export class WorldChunk extends THREE.Group{
         const randomFloat = this.rng.random();
         const seedInt = Math.floor(randomFloat * 0x100000000); // Convert to integer seed for noise generation
         this.initializeTerrain();
-        this.generateResources(seedInt);
         this.generateTerrain(seedInt);
-        //this.TerrainCustomization.generateTrees(seedInt); // Generate trees using TerrainCustomization
         this.TerrainCustomization.generateClouds(seedInt); // Generate clouds using TerrainCustomization
         this.loadPlayerChanges();
         this.generateMeshes();
@@ -64,7 +63,11 @@ export class WorldChunk extends THREE.Group{
     }
 
     generateTerrain(seedInt) {
-        const noise2D = makeNoise2D(seedInt); // Create a 2D noise generator
+        let noise2D = noise2DCache.get(seedInt);
+        if (!noise2D) {
+            noise2D = makeNoise2D(seedInt); // Create a new 2D noise generator if not in cache
+            noise2DCache.set(seedInt, noise2D); // Store the 2D noise generator in the cache
+        }
         // Generate terrain using Perlin noise looping through each block in the world
         // and applying the noise function to determine the height of each block
         for (let x = 0; x < this.size.width; x++) {
@@ -114,7 +117,11 @@ export class WorldChunk extends THREE.Group{
 
     generateResources(seedInt, x,y,z) {
         this.setId(x, y, z, BLOCKS.dirt.id); 
-        const noise3D = makeNoise3D(seedInt); // Create a Simplex noise generator with the seed
+        let noise3D = noise3DCache.get(seedInt); 
+        if (!noise3D) {
+            noise3D = makeNoise3D(seedInt); // If not in cache, create a new 3D noise generator
+            noise3DCache.set(seedInt, noise3D); // Create a new 3D noise generator and store it in the cache
+        }
         resources.forEach(resource => {
             const value = noise3D(
                 (this.position.x + x) / resource.scale.x,
@@ -152,7 +159,7 @@ export class WorldChunk extends THREE.Group{
         Object.values(BLOCKS)
             .filter(blockType => blockType.id !== BLOCKS.empty.id) // Filter out empty blocks
             .forEach(blockType => {
-                const max_count = this.size.width * this.size.width * this.size.height;
+                const max_count = Math.ceil(this.size.width * this.size.width * this.size.height*0.25);
                 const mesh = new THREE.InstancedMesh(geometry, blockType.material, max_count);
                 mesh.count = 0;
                 mesh.castShadow = true; // Enable shadow casting for the mesh
@@ -183,6 +190,8 @@ export class WorldChunk extends THREE.Group{
                     }
                     else {
                         this.setInstanceId(x, y, z, null); // If the block is hidden, set instance ID to null
+                        // mesh.castShadow = false; // Disable shadow casting for hidden blocks
+                        // mesh.receiveShadow = false; // Disable shadow receiving for hidden blocks
                     }
                 }
             }

@@ -209,13 +209,13 @@ export const BLOCKS = {
     id: 13,
     name: 'snow',
     material: [
-        new THREE.MeshBasicMaterial({ map: textures.snow }),
-        new THREE.MeshBasicMaterial({ map: textures.snow }),
-        new THREE.MeshBasicMaterial({ map: textures.snow }),
-        new THREE.MeshBasicMaterial({ map: textures.snow }),
-        new THREE.MeshBasicMaterial({ map: textures.snow }),
-        new THREE.MeshBasicMaterial({ map: textures.snow }),
-        new THREE.MeshBasicMaterial({ map: textures.snow }),
+        new THREE.MeshLambertMaterial({ map: textures.snow }),
+        new THREE.MeshLambertMaterial({ map: textures.snow }),
+        new THREE.MeshLambertMaterial({ map: textures.snow }),
+        new THREE.MeshLambertMaterial({ map: textures.snow }),
+        new THREE.MeshLambertMaterial({ map: textures.snow }),
+        new THREE.MeshLambertMaterial({ map: textures.snow }),
+        new THREE.MeshLambertMaterial({ map: textures.snow }),
     ]
     },
     leaves_r1: {

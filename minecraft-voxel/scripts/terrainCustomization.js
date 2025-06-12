@@ -6,6 +6,8 @@ import { RNG } from './rng';
 const SLICE_GENERATION = 0;
 const SPHERE_GENERATION = 1;
 
+const cloudNoiseCache = new Map();
+
 export class TerrainCustomization extends THREE.Group {
     constructor(worldChunk) {
         super();
@@ -73,15 +75,14 @@ export class TerrainCustomization extends THREE.Group {
                         const leafZ = z + Cz;
                         const leafBlock = this.worldChunk.getBlock(leafX, leafY, leafZ);
                         const ratio = this.worldChunk.params.trees.canopy.transparentRatio; // Ratio for transparent leaves
-                        console.log('ratio', ratio);
-                        let leaves = Math.random() < ratio ? leavesID[0] : leavesID[1]; // Randomly select a leaves ID from the array
-                        
-                        if (leafBlock && rng.random() < density && leafBlock.id === BLOCKS.empty.id) { // Only generate leaves on empty blocks
+                        let leaves = rng.random() < ratio ? leavesID[0] : leavesID[1]; // Randomly select a leaves ID from the array
+                        if (!leafBlock || leafBlock.id !== BLOCKS.empty.id) continue; // Only generate leaves on empty blocks
+                        if (rng.random() < density) { // Only generate leaves on empty blocks
                             if (biome === 'temperate' ) {
                                 this.worldChunk.setId(leafX, leafY, leafZ, leaves); // Set the block ID to leaves
                             }
                             else if (biome === 'forest'){
-                                this.worldChunk.setId(leafX, leafY, leafZ, BLOCKS.jungleLeaves); // Set the block ID to jungle leaves
+                                this.worldChunk.setId(leafX, leafY, leafZ, leaves); // Set the block ID to jungle leaves
                             }
                         }
                     }
@@ -111,7 +112,7 @@ export class TerrainCustomization extends THREE.Group {
                                 this.worldChunk.setId(leafX, leafY, leafZ, leaves); // Set the block ID to leaves
                             }
                             else if (biome === 'forest') {
-                                this.worldChunk.setId(leafX, leafY, leafZ, BLOCKS.jungleLeaves); // Set the block ID to jungle leaves
+                                this.worldChunk.setId(leafX, leafY, leafZ, leaves); // Set the block ID to jungle leaves
                             }
                         }
                     }
@@ -124,7 +125,11 @@ export class TerrainCustomization extends THREE.Group {
 
 
     generateClouds(seedInt) {
-        const noise2D = new makeNoise2D(seedInt);
+        let noise2D = cloudNoiseCache.get(seedInt);
+        if (!noise2D) {
+            noise2D = makeNoise2D(seedInt);
+            cloudNoiseCache.set(seedInt, noise2D);
+        }
 
         for (let x = 0; x < this.worldChunk.size.width; x++) {
             for (let z = 0; z < this.worldChunk.size.width; z++) {
@@ -133,16 +138,23 @@ export class TerrainCustomization extends THREE.Group {
                     (this.worldChunk.position.z + z) / this.worldChunk.params.clouds.scale);
                 let normalizedNoiseValue = (noiseValue + 1) / 2; // Normalize to [0, 1]
                 if (normalizedNoiseValue < this.worldChunk.params.clouds.density) {
-                    // Create a cloud block at the position
-                    const cloudBlock = BLOCKS.cloud;
-                    this.worldChunk.setId(x, this.worldChunk.size.height - 1, z, cloudBlock.id);
+                   // Create a cloud block at the position
+                 const cloudBlock = BLOCKS.cloud;
+                 const layers = this.worldChunk.params.clouds.layers ?? 2;   // nuovo parametro
+                 for (let i = 0; i < layers; i++) {
+                     this.worldChunk.setId(
+                         x,
+                         this.worldChunk.size.height - 1 - i,
+                         z,
+                         cloudBlock.id
+                     );
+                 }
                 }
             }
         }
     }
 
     generateWater() {
-        //console.log('Generating water plane for terrain customization');
         const material = new THREE.MeshLambertMaterial({ color: 0x1E90FF, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
         const waterGeometry = new THREE.PlaneGeometry();
         const waterMesh = new THREE.Mesh(waterGeometry, material);
@@ -184,12 +196,48 @@ export class TerrainCustomization extends THREE.Group {
         }
         else if (raw < this.worldChunk.params.biomes.Temperate2Forest) {
             return 'temperate';
-        } else if (raw < this.worldChunk.params.biomes.Jungle2Desert) {
+        } else if (raw < this.worldChunk.params.biomes.Forest2Desert) {
             return 'forest';
         } else {
             return 'desert';
         }
     }
+
+
+    mixUpBiome2AbsoluteBiome(x,z,noise, temperature, humidity) {
+        //La funzione lavora in un orizzonte temporale, l'obiettivo è, partendo da un bioma iniziale, definire 
+        // il bioma finale. 
+
+        //1. Definire esattamente come imponiamo un "orizzonte temporale" alla funzione. 
+
+        //1. //All'inizio tutto verde e rigoglioso con parametri mixati tra sabbia e foresta, quindi
+        //i parametri di temperatura e umidità sono fissati e passati all'inizio come parametri di input
+
+
+        //2. A partire da questi parametri generiamo i parametri del bioma finale. 
+            // a) Qui dobbiamo implementare una funzione che riesca a calcolare il bioma finale quindi 
+            //    restituendo valori di temperatura, umidità e densità di vegetazione estremi. Altrimenti 
+            //    non arriviamo ad un bioma assoluto. 
+
+        //3. Conoscendo il bioma iniziale e il bioma finale campioniamo parametri di temperatura e umidità 
+        // nel range [iniziale, finale]. 
+                //a) Dobbiamo capire bene cosa vuol dire campionare anche perché il campionamento deve essere 
+                // "direzionale". Ad esempio se il bioma finale deve essere desertico ci aspettiamo che 
+                // la temperatura sia alta e l'umidità bassa, quindi il campionamento deve essere fatto in modo
+                // da riflettere queste aspettative regredendo tra i vari chunk la vegetazione. 
+
+
+        //4. A questo punto non dobbiamo fare altro che interpolare i parametri di temperatura, umidità e densità di vegetazione
+            // a) L'interpolazione deve essere fatta in modo da avere un passaggio graduale tra i vari chunk,
+            //    come potremmo fare? usare un polinomio? esistono tecniche più intelligenti?
+        
+        //5. a questo punto modifichiamo this.params.trees.density e i valori di temperatura e umidità facendo si che 
+        // tutti i prossimi chunk nella drawDistance usino tali valori. 
+
+        //6. Raggiunto il bioma finale si ricomincia da capo con un nuovo bioma iniziale casuale. 
+        
+    }
+    
 
 
 

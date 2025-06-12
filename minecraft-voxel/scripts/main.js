@@ -34,7 +34,7 @@ modelLoader.loadModels((models) => {
 
 // Scene setup
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x80a0e0, 50, 150);
+scene.fog = new THREE.Fog(0x80a0e0, 50, 100);
 const player = new Player(scene);
 const physics = new Physics(scene);
 const world = new World();

@@ -3,6 +3,9 @@ import { WorldChunk } from './worldChunk';
 import {debug, save, load} from './utils';
 import { BLOCKS } from './block';
 import { DataStore } from './dataStore';
+const ric = window.requestIdleCallback || 
+            function (cb, opts) { return setTimeout(() => cb({ timeRemaining: () => 0 }), opts?.timeout || 1); };
+
 
 export class World extends THREE.Group{
 
@@ -10,18 +13,17 @@ export class World extends THREE.Group{
     asyncLoading = true; // If true, chunks will be loaded asynchronously
 
     visibleDistance = 2;
-    WorldChunkSize={width: 32, height: 32}
-    printed = [];
+    WorldChunkSize={width: 32, height: 64}
 
 
 
     params = {
         terrain: {
             seed: 0,
-            scale: 20,           // scala base per l’ottava 0
-            magnitude: 0.4,      // ampiezza complessiva (verrà applicata dopo)
-            offset: 0.2,         // spostamento (così non avremo mai height = 0)
-            waterOffset: 8,
+            scale: 30,           // scala base per l’ottava 0
+            magnitude: 0.1,      // ampiezza complessiva (verrà applicata dopo)
+            offset: 0.1,         // spostamento (così non avremo mai height = 0)
+            waterOffset: 2,
             //octaves: 4,          // numero di ottave
             //persistence: 0.9,    // di quanto diminuisce ampiezza da un’ottava alla successiva
             //lacunarity: 2.0      // di quanto aumenta frequenza da un’ottava alla successiva
@@ -51,8 +53,15 @@ export class World extends THREE.Group{
         }, 
         clouds: {
             scale: 30,
-            density: 0.0
+            density: 0.3,
+            layers: 2
             
+        }, 
+        caves : {
+            scale: 20,
+            threshold: 0.6,
+            yMin: 4.0, // altezza minima di scavo per le caverne
+            yMax: 20.0, // altezza massima di scavo per le caverne
         }
     };
     dataStore = new DataStore();
@@ -87,8 +96,8 @@ export class World extends THREE.Group{
             this.dataStore.clear(); // Clear the data store if needed
         }
         this.disposeChunks(); // Clear existing chunks before generating new ones
-        for (let x = -this.visibleDistance; x < this.visibleDistance; x ++) {
-            for (let z = -this.visibleDistance; z < this.visibleDistance; z ++) {
+        for (let x = -this.visibleDistance; x <= this.visibleDistance; x ++) {
+            for (let z = -this.visibleDistance; z <= this.visibleDistance; z ++) {
                 const chunk = new WorldChunk(this.WorldChunkSize, this.params, this.dataStore);
                 chunk.position.set(x*this.WorldChunkSize.width, 0, z*this.WorldChunkSize.width);
                 chunk.userData = {x,z};
@@ -168,7 +177,6 @@ export class World extends THREE.Group{
         toRemove.forEach(chunk => {
             chunk.disposeInstances(); // Dispose of chunk instances if necessary
             this.remove(chunk); // Remove the chunk from the world
-            //console.log(`Removed chunk at (${chunk.userData.x}, ${chunk.userData.z})`);
         });
     }
 
@@ -178,15 +186,12 @@ export class World extends THREE.Group{
         chunk.userData = {x,z};
 
         if (this.asyncLoading) {
-            requestIdleCallback(chunk.generate.bind(chunk), {
-                timeout: 1000 // Set a timeout for the async generation
-            });
+            ric(chunk.generate.bind(chunk), { timeout: 1000 });
         }
         else{
             chunk.generate();
         }
         this.add(chunk);
-        //console.log(`Generated chunk at (${chunk.userData.x}, ${chunk.userData.z})`);
     }
 
 
@@ -253,7 +258,6 @@ export class World extends THREE.Group{
         const {chunkCoords, blockInChunk} = this.worldToLocalChunk(worldX, worldY, worldZ);
         const chunk = this.getChunk(chunkCoords.x, chunkCoords.z);
         if (chunk && chunk.isBlockHidden(blockInChunk.x, blockInChunk.y, blockInChunk.z)) {
-            console.log(`Block at (${worldX}, ${worldY}, ${worldZ}) is already hidden.`);
             chunk.removeBlockInChunk(blockInChunk.x, blockInChunk.y, blockInChunk.z);
         }
     }
