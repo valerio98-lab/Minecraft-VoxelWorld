@@ -7,6 +7,7 @@ import { Physics } from './physics';
 import { BLOCKS } from './block';
 import { setupUI } from './ui';
 import { ModelLoader } from './modelLoader';
+import {buildSteve, updateWalkCycle} from './steve';
 
 // Renderer setup
 const renderer = new THREE.WebGLRenderer();
@@ -40,10 +41,16 @@ const physics = new Physics(scene);
 const world = new World();
 const sun = new THREE.DirectionalLight();
 
+const playerCameraHelper = new THREE.CameraHelper(player.camera);
+scene.add(playerCameraHelper);
+// Add the orbit camera to the scene
+playerCameraHelper.visible = true; // Hide the camera helper by default
+
 world.generate();
 scene.add(world);
 
-
+const steve = buildSteve();
+scene.add(steve);
 
 function setupLighting() {
   sun.intensity = 1.5;
@@ -109,9 +116,44 @@ function animate() {
 
   requestAnimationFrame(animate);
   player.updateRay(world);
-  //console.log('Ciuccia la minchia');
+
   physics.update(dt, player, world);
   world.update(player);
+  playerCameraHelper.update();
+
+
+
+// Update Steve's position and animation
+  const camDir = new THREE.Vector3();
+  player.camera.getWorldDirection(camDir);
+  const yaw = Math.atan2(camDir.x, camDir.z); // Calculate yaw from camera direction
+    
+  const forwardXZ = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).normalize(); // Calculate forward direction in XZ plane
+  steve.position.copy(player.position);
+  steve.position.y -= player.height;  // Position Steve at the player's feet
+  steve.position.addScaledVector(forwardXZ, -0.3); // Adjust Steve's position slightly forward
+
+  
+  const horizontalLength = Math.sqrt(camDir.x*camDir.x + camDir.z*camDir.z);
+  // pitch completo in [-π, +π]
+  let pitch = Math.atan2(camDir.y, horizontalLength);
+  pitch = -pitch;
+
+  const maxHeadPitch = Math.PI / 4; // 45°
+  pitch = THREE.MathUtils.clamp(pitch, -maxHeadPitch, +maxHeadPitch);
+  steve.userData.head.rotation.x = pitch;
+
+
+  steve.userData.torso.rotation.y = yaw + Math.PI; // Set torso rotation to match camera yaw
+  steve.userData.head.rotation.y = Math.PI; // Set head rotation to match camera yaw
+
+
+  const hSpeed = player.worldVelocity.clone().setY(0).length();
+  updateWalkCycle(steve, dt, hSpeed);
+
+  //orienta nella direzione di movimento
+
+  //animazione di Steve degli arti
 
   sun.position.copy(player.position);
   sun.position.sub(new THREE.Vector3(-50,-50,-50)); // Position sun above player

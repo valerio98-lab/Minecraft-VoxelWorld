@@ -4,8 +4,8 @@ import { BLOCKS } from './block';
 
 export class BiomeManager {
   /**
-   * @param {number} seed      – seme globale del mondo
-   * @param {number} scale     – “larghezza” delle macchie bioma (più alto ⇒ biomi più vasti)
+   * @param {number} seed   
+   * @param {number} scale  
    */
   constructor(seed, scale = 256) {
     // due rumori diversi ottenuti con seed “rotato”
@@ -33,7 +33,6 @@ export class BiomeManager {
 
 
     getBiome(temperature, humidity){
-        // se temp e hum alta allora foresta
         if (temperature < 0) {
             return 'tundra';
         }
@@ -71,13 +70,13 @@ export class BiomeManager {
             case 'tundra2forest':
                 return [BLOCKS.snow.id, BLOCKS.grass.id];
             case 'forest':
-                return [BLOCKS.grass.id]; // Spruce
+                return [BLOCKS.grass.id];
             case 'forest2desert':
-                return [BLOCKS.grass.id, BLOCKS.sand.id]; // Birch
+                return [BLOCKS.grass.id, BLOCKS.sand.id]; 
             case 'desert':
                 return [BLOCKS.sand.id]; // Sand
             default:
-                return [BLOCKS.grass.id]; // Default block (e.g., grass)
+                return [BLOCKS.grass.id]; 
         }
     }
 }
