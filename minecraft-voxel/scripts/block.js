@@ -33,6 +33,7 @@ const textures = {
     leaves_azalea: loadTexture('textures/azalea_leaves(1).png'),
     flowers_azalea: loadTexture('textures/azalea_leaves_flowers.png'),
     opaque_leaves: loadTexture('textures/leaves_jungle_opaque.png'),
+    ice: loadTexture('textures/ice.png'),
 };
 
 
@@ -289,7 +290,19 @@ export const BLOCKS = {
             new THREE.MeshLambertMaterial({ map: textures.flowers_azalea}),
             new THREE.MeshLambertMaterial({ map: textures.flowers_azalea}),
         ]
-    }
+    }, 
+    ice: {
+        id: 20,
+        name: 'Ice',
+        material: [
+            new THREE.MeshLambertMaterial({ map: textures.ice, transparent: false, opacity: 0.8 }),
+            new THREE.MeshLambertMaterial({ map: textures.ice, transparent: false, opacity: 0.8 }),
+            new THREE.MeshLambertMaterial({ map: textures.ice, transparent: false, opacity: 0.8 }),
+            new THREE.MeshLambertMaterial({ map: textures.ice, transparent: false, opacity: 0.8 }),
+            new THREE.MeshLambertMaterial({ map: textures.ice, transparent: false, opacity: 0.8 }),
+            new THREE.MeshLambertMaterial({ map: textures.ice, transparent: false, opacity: 0.8 })
+        ]
+    },
 }
 
 

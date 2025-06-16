@@ -21,13 +21,19 @@ export class WorldChunk extends THREE.Group{
     data = []; // 3D array to hold block datas
 
 
-    constructor(size, params, dataStore) {
+    constructor(size, params, dataStore, biomeManager, temperature, humidity, treeDensity) {
         super();
         this.loaded = false; // Flag to indicate if the chunk is loaded
         this.size = size;
         this.params = params; // Parameters for terrain generation
         this.dataStore = dataStore; // Data store for managing chunk data
+        this.biomeManager = biomeManager // Create an instance of TerrainCustomization
         this.TerrainCustomization = new TerrainCustomization(this); // Create an instance of TerrainCustomization
+        this.temperature = temperature; // Set the temperature for the chunk
+        this.humidity = humidity; // Set the humidity for the chunk
+        this.treeDensity = treeDensity; // Set the tree density for the chunk
+        this.biome = this.biomeManager.getBiome(this.temperature, this.humidity); // Get the biome based on temperature and humidity
+        this.blockType = this.biomeManager.getBlockIDPerBiome(this.biome); 
     }
 
     generate() {
@@ -72,7 +78,6 @@ export class WorldChunk extends THREE.Group{
         // and applying the noise function to determine the height of each block
         for (let x = 0; x < this.size.width; x++) {
             for (let z = 0; z < this.size.width; z++) {
-                const biome = this.TerrainCustomization.getBiome(x,z,noise2D);
                 const sampleX = ((this.position.x + x) / this.params.terrain.scale) //* frequency;
                 const sampleZ = ((this.position.z + z) / this.params.terrain.scale) //* frequency;
                 const raw = noise2D(sampleX, sampleZ); // Get the noise value for the current coordinates in the range [-1, 1]
@@ -92,18 +97,18 @@ export class WorldChunk extends THREE.Group{
                 
                 
                 for (let y = 0; y < this.size.height; y++) {
-                    if (y <= this.params.terrain.waterOffset && y === height) {
-                        this.setId(x, y, z, BLOCKS.sand.id);
-                    }
-                    else if (y=== height) {
-                    
-                        if (biome==='desert') this.setId(x, y, z, BLOCKS.sand.id); 
-                        else if (biome==='temperate' || biome==='forest') this.setId(x, y, z, BLOCKS.grass.id);
-                        else if (biome==='tundra') this.setId(x, y, z, BLOCKS.snow.id);
+                    // if (y <= this.params.terrain.waterOffset) {
+                    //     this.setId(x, y, z, BLOCKS.sand.id);
+                    // }
+                    if (y=== height) {
+                        const blockId = this.TerrainCustomization.pickBlock(x, z, this.blockType, noise2D); // Set the block ID to the generated block type
+                        
+                        this.setId(x, y, z, blockId); // Set the block ID at the current position
 
-                        if (this.rng.random() < this.params.trees.frequency) {
+
+                        if (this.rng.random() < this.treeDensity) { // Check if a tree should be generated based on the tree density
                             // Randomly generate trees based on the frequency parameter
-                            this.TerrainCustomization.generateTrees(x, height, z, biome, seedInt); // Generate a tree at the current position
+                            this.TerrainCustomization.generateTrees(x, height, z, this.biome, seedInt); // Generate a tree at the current position
                         }
                     
                     }

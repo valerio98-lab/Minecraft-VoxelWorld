@@ -12,29 +12,44 @@ export class TerrainCustomization extends THREE.Group {
     constructor(worldChunk) {
         super();
         this.worldChunk = worldChunk; // Reference to the world chunk
+        this.params = worldChunk.params; // Parameters for terrain customization
     }
 
     generateTrees(x, y, z, biome, seedInt) {
         let rng = new RNG(seedInt); // Create a new RNG instance with the seed
-
         const minH = this.worldChunk.params.trees.trunk.minHeight;
         const maxH = this.worldChunk.params.trees.trunk.maxHeight;
         const height = Math.max(Math.round(rng.random() * (maxH - minH)) + minH, minH); // Random height between min and max
 
+        const block = this.worldChunk.getBlock(x, y, z);
+        let block_id = BLOCKS.empty.id; // Default to empty block
+        if (biome === 'tundra2forest' && block.id !== BLOCKS.ice.id) {
+            block_id = BLOCKS.tree.id;
+        } else if (biome === 'forest') {
+            block_id = BLOCKS.tree.id;
+        } else if (biome === 'forest2desert') {
+            if(block.id === BLOCKS.sand.id) {
+                block_id = BLOCKS.cactus.id;
+            }
+            else {
+                block_id = BLOCKS.tree.id;
+            }
+        } else if (biome === 'desert') {
+            block_id = BLOCKS.cactus.id;
+        }
+
 
         for (let h = y; h < y + height; h++) {
-            if (biome === 'temperate' || biome === 'tundra') {
-                this.worldChunk.setId(x, h, z, BLOCKS.tree.id);
-            } else if (biome === 'forest') {
-                this.worldChunk.setId(x, h, z, BLOCKS.jungleTree.id);
-            } else if (biome === 'desert') {
-                this.worldChunk.setId(x, h, z, BLOCKS.cactus.id);
-            }
+            const trunkBlock = this.worldChunk.getBlock(x, h, z);
+            if (!trunkBlock || trunkBlock.id !== BLOCKS.empty.id) continue; // Only generate trunk on empty blocks
+            this.worldChunk.setId(x, h, z, block_id); // Set the block ID to tree or cactus
         }
 
-        if (biome == 'temperate' || biome === 'forest') {
-            this.TreeCrownGeneration(rng, biome, x, y + height, z); // Generate tree crown
-        }
+        if (((biome == 'tundra2forest' && block.id === BLOCKS.grass.id)) || (biome === 'forest2desert' && block.id === BLOCKS.grass.id) ||
+            (biome === 'forest')) {
+                //console.log(`Generating tree crown at (${x}, ${y + height}, ${z}) in biome ${biome}`);
+                this.TreeCrownGeneration(rng, biome, x, y + height, z); // Generate tree crown
+            }
     }
 
 
@@ -65,6 +80,7 @@ export class TerrainCustomization extends THREE.Group {
 
     SphereLeavesGeneration(x, y, z, radius, leavesID, biome, rng){
         const density = this.worldChunk.params.trees.canopy.density;
+        const block = this.worldChunk.getBlock(x, y, z);
         for (let Cx=-radius; Cx <= radius; Cx++) {
             for (let Cy=-radius; Cy <= radius; Cy++) {
                 for (let Cz=-radius; Cz <= radius; Cz++) {
@@ -78,10 +94,10 @@ export class TerrainCustomization extends THREE.Group {
                         let leaves = rng.random() < ratio ? leavesID[0] : leavesID[1]; // Randomly select a leaves ID from the array
                         if (!leafBlock || leafBlock.id !== BLOCKS.empty.id) continue; // Only generate leaves on empty blocks
                         if (rng.random() < density) { // Only generate leaves on empty blocks
-                            if (biome === 'temperate' ) {
+                            if (biome === 'forest' ) {
                                 this.worldChunk.setId(leafX, leafY, leafZ, leaves); // Set the block ID to leaves
                             }
-                            else if (biome === 'forest'){
+                            else if ((biome === 'tundra2forest' || biome === 'forest2desert')) {
                                 this.worldChunk.setId(leafX, leafY, leafZ, leaves); // Set the block ID to jungle leaves
                             }
                         }
@@ -89,36 +105,6 @@ export class TerrainCustomization extends THREE.Group {
                 }
             }
         }
-    }
-
-
-
-    SliceLeavesGeneration(x, y, z, radius, leavesID, biome, rng) {
-        const density = this.worldChunk.params.trees.canopy.density;
-        for (let Cy = 0; Cy <= radius; Cy++) {
-            // radius shrinks as Cy increases:
-                let layerRadius = radius - Cy;
-
-                // sweep out a square of side (2*layerRadius + 1)
-                for (let Cx = -layerRadius; Cx <= layerRadius; Cx++) {
-                    for (let Cz = -layerRadius; Cz <= layerRadius; Cz++) {
-                        let leaves = leavesID[Math.floor(rng.random() * leavesID.length)]; // Randomly select a leaves ID from the array
-                        const leafX = x + Cx;
-                        const leafY = y + Cy;  // up from the trunk
-                        const leafZ = z + Cz;
-                        const leafBlock = this.worldChunk.getBlock(leafX, leafY, leafZ);
-                        if (leafBlock && rng.random() < density  && leafBlock.id === BLOCKS.empty.id) {
-                            if(biome=== 'temperate' ) {
-                                this.worldChunk.setId(leafX, leafY, leafZ, leaves); // Set the block ID to leaves
-                            }
-                            else if (biome === 'forest') {
-                                this.worldChunk.setId(leafX, leafY, leafZ, leaves); // Set the block ID to jungle leaves
-                            }
-                        }
-                    }
-                }
-
-            }
     }
 
 
@@ -180,26 +166,31 @@ export class TerrainCustomization extends THREE.Group {
      * @param {number} seed - The seed for noise generation.
      * @returns {string} - The biome type.
      */
-    getBiome(x, z, noise) {
+    pickBlock(x, z, blockList, noise) {
+        if (blockList.length === 1) return blockList[0];
+        
         let raw = noise(
             (this.worldChunk.position.x + x) / this.worldChunk.params.biomes.scale, 
             (this.worldChunk.position.z + z) / this.worldChunk.params.biomes.scale
         );
-        raw = (raw + 1) / 2; // Normalize to [0, 1]
+        raw = (raw + 1) * 0.5; // Normalize to [0, 1]
+
         raw += this.worldChunk.params.biomes.variation.amplitude * noise(
             (this.worldChunk.position.x + x) / (this.worldChunk.params.biomes.variation.scale), 
             (this.worldChunk.position.z + z) / (this.worldChunk.params.biomes.variation.scale)
         );
 
-        if (raw < this.worldChunk.params.biomes.Tundra2Temperate){
-            return 'tundra';
+        if(blockList.length === 2) {
+            return raw < 0.5 ? blockList[0] : blockList[1]; // Return one of the two blocks based on noise
         }
-        else if (raw < this.worldChunk.params.biomes.Temperate2Forest) {
-            return 'temperate';
-        } else if (raw < this.worldChunk.params.biomes.Forest2Desert) {
-            return 'forest';
-        } else {
-            return 'desert';
+        if(raw<= 0.33) {
+            return blockList[0]; // Return the first block if raw is less than or equal to 0.33
+        }
+        else if(raw <= 0.66) {
+            return blockList[1]; // Return the second block if raw is less than or equal to 0.66
+        }
+        else {
+            return blockList[2]; // Return the third block if raw is greater than 0.66
         }
     }
 
@@ -237,6 +228,12 @@ export class TerrainCustomization extends THREE.Group {
         //6. Raggiunto il bioma finale si ricomincia da capo con un nuovo bioma iniziale casuale. 
         
     }
+    /**
+     * Initialize the initial values of temperature and humidity.
+     * @return. {temperature, humidity} - The initial values of temperature and humidity.
+     */
+    
+    
     
 
 

@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import { WorldChunk } from './worldChunk';
 import {debug, save, load} from './utils';
+import { BiomeManager } from './biomeManager';  
 import { BLOCKS } from './block';
 import { DataStore } from './dataStore';
+import { RNG } from './rng';
 const ric = window.requestIdleCallback || 
             function (cb, opts) { return setTimeout(() => cb({ timeRemaining: () => 0 }), opts?.timeout || 1); };
 
@@ -23,13 +25,13 @@ export class World extends THREE.Group{
             scale: 30,           // scala base per l’ottava 0
             magnitude: 0.1,      // ampiezza complessiva (verrà applicata dopo)
             offset: 0.1,         // spostamento (così non avremo mai height = 0)
-            waterOffset: 2,
+            waterOffset: 1,
             //octaves: 4,          // numero di ottave
             //persistence: 0.9,    // di quanto diminuisce ampiezza da un’ottava alla successiva
             //lacunarity: 2.0      // di quanto aumenta frequenza da un’ottava alla successiva
         },
         biomes:{
-            scale:50,
+            scale:12,
             variation:{
                 amplitude:0.2,
                 scale:30
@@ -69,6 +71,10 @@ export class World extends THREE.Group{
         super();
         this.dataStore.clear();
         this.seed = seed;
+        this.rng = new RNG(this.params.terrain.seed); // Initialize RNG with the seed from params
+        this.seedInt = Math.floor(this.rng.random() * 0x100000000);
+        this.BiomeManager = new BiomeManager(this.seedInt)
+
 
         document.addEventListener('keydown', (event) => {
             switch(event.code){
@@ -98,7 +104,16 @@ export class World extends THREE.Group{
         this.disposeChunks(); // Clear existing chunks before generating new ones
         for (let x = -this.visibleDistance; x <= this.visibleDistance; x ++) {
             for (let z = -this.visibleDistance; z <= this.visibleDistance; z ++) {
-                const chunk = new WorldChunk(this.WorldChunkSize, this.params, this.dataStore);
+                const { temperature, humidity, treeDensity } = this.BiomeManager.sampleClimate(32, 32);
+                const chunk = new WorldChunk(
+                    this.WorldChunkSize, 
+                    this.params, 
+                    this.dataStore, 
+                    this.BiomeManager,
+                    temperature,
+                    humidity,
+                    treeDensity,
+                );
                 chunk.position.set(x*this.WorldChunkSize.width, 0, z*this.WorldChunkSize.width);
                 chunk.userData = {x,z};
                 chunk.generate();
@@ -113,8 +128,10 @@ export class World extends THREE.Group{
         const chunksToDraw = this.getChunksToDraw(visibleChunks);
         this.removeChunks(visibleChunks);
 
+        const WorldCoords = {x: player.position.x, z: player.position.z};
+
         for (const chunk of chunksToDraw) {
-            this.generateChunk(chunk.x, chunk.z);
+            this.generateChunk(chunk.x, chunk.z, WorldCoords);
         }
 
     }
@@ -180,8 +197,18 @@ export class World extends THREE.Group{
         });
     }
 
-    generateChunk(x, z) {
-        const chunk = new WorldChunk(this.WorldChunkSize, this.params, this.dataStore);
+    generateChunk(x, z, WorldCoords) {
+        const { temperature, humidity, treeDensity } = this.BiomeManager.sampleClimate(WorldCoords.x, WorldCoords.z);
+        const chunk = new WorldChunk(
+            this.WorldChunkSize, 
+            this.params, 
+            this.dataStore, 
+            this.BiomeManager,
+            temperature,
+            humidity,
+            treeDensity,
+        );
+
         chunk.position.set(x*this.WorldChunkSize.width, 0, z*this.WorldChunkSize.width);
         chunk.userData = {x,z};
 
