@@ -29,6 +29,7 @@ controls.update();
 
 // Scene setup
 const scene = new THREE.Scene();
+window.scene = scene; // Expose the scene globally for debugging
 scene.fog = new THREE.Fog(0x80a0e0, 50, 100);
 const player = new Player(scene);
 const physics = new Physics(scene);
@@ -68,8 +69,9 @@ function setupLighting() {
   sun.shadow.camera.bottom = -100;
   sun.shadow.camera.near = 0.1;
   sun.shadow.camera.far = 200;
-  sun.shadow.bias = -0.0005;
-  sun.shadow.mapSize = new THREE.Vector2(1024, 1024); // Higher resolution for better shadows
+  sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = 0.06;
+  sun.shadow.mapSize = new THREE.Vector2(2048, 2048); // Higher resolution for better shadows
   scene.add(sun);
   scene.add(sun.target);
 
@@ -157,6 +159,19 @@ function animate() {
   sun.position.copy(player.position);
   sun.position.sub(new THREE.Vector3(-50,-50,-50)); // Position sun above player
   sun.target.position.copy(player.position);
+
+  const frameH = 1 / 32; 
+
+  scene.traverse(obj => {
+    if(obj.userData.isWater && obj.material?.uniforms){
+      const uni = obj.material?.uniforms;
+      uni.offset1.value.y = (uni.offset1.value.y + dt * 0.3 * frameH) % 1; // Update offset1 (slower) for animation
+      uni.offset2.value.y = (uni.offset2.value.y - dt * 0.4 * frameH) % 1; // Update offset2 (faster) for animation
+
+      uni.normalOffset.value.x = (uni.normalOffset.value.x + dt * 0.03) % 1; 
+      uni.normalOffset.value.y = (uni.normalOffset.value.y + dt * 0.025) % 1;
+    }
+    });
 
   renderer.render(scene, player.controls.isLocked ? player.camera : orbitCamera);
   stats.update();

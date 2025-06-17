@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { BLOCKS } from './block';
 import { makeNoise2D } from 'open-simplex-noise';
+import {waterUniforms, waterVertex, waterFragment} from './waterShader';
 import { RNG } from './rng';
 
 const SLICE_GENERATION = 0;
@@ -141,23 +142,39 @@ export class TerrainCustomization extends THREE.Group {
     }
 
     generateWater() {
-        const material = new THREE.MeshLambertMaterial({ color: 0x1E90FF, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
-        const waterGeometry = new THREE.PlaneGeometry();
-        const waterMesh = new THREE.Mesh(waterGeometry, material);
+        // const material = new THREE.MeshLambertMaterial({ color: 0x1E90FF, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
+        const uniforms = THREE.UniformsUtils.clone(waterUniforms); // Clone the water uniforms
+        uniforms.tint.value.set(0x3d9bd9); // Set the water tint color        
+        
+        const material = new THREE.ShaderMaterial({
+            uniforms: uniforms,
+            vertexShader: waterVertex,
+            fragmentShader: waterFragment,
+            transparent: true, 
+            side: THREE.DoubleSide, // Render both sides of the water plane
+        });
+        
+        const SEG = 1; // Number of segments for the water plane
+        const geometry = new THREE.PlaneGeometry(1, 1, SEG, SEG);
+
+        const waterMesh = new THREE.Mesh(geometry, material);
         waterMesh.rotateX(-Math.PI / 2); // Rotate the plane to be horizontal
         waterMesh.position.set(
             this.worldChunk.size.width / 2,
             this.worldChunk.params.terrain.waterOffset+0.4, 
             this.worldChunk.size.width / 2
         ); // Center the water plane
+
         waterMesh.scale.set(
             this.worldChunk.size.width, 
             this.worldChunk.size.width,
             1
         ); // Scale the water plane to cover the chunk
         waterMesh.layers.set(1); // Set the layer for water
+        waterMesh.userData.isWater = true; // Mark the mesh as water
+
         this.worldChunk.add(waterMesh); // Add the water mesh to the terrain customization group
-    }
+}
 
     /**
      * Get the biome at a specific position in the world chunk.
@@ -195,43 +212,6 @@ export class TerrainCustomization extends THREE.Group {
     }
 
 
-    mixUpBiome2AbsoluteBiome(x,z,noise, temperature, humidity) {
-        //La funzione lavora in un orizzonte temporale, l'obiettivo è, partendo da un bioma iniziale, definire 
-        // il bioma finale. 
-
-        //1. Definire esattamente come imponiamo un "orizzonte temporale" alla funzione. 
-
-        //1. //All'inizio tutto verde e rigoglioso con parametri mixati tra sabbia e foresta, quindi
-        //i parametri di temperatura e umidità sono fissati e passati all'inizio come parametri di input
-
-
-        //2. A partire da questi parametri generiamo i parametri del bioma finale. 
-            // a) Qui dobbiamo implementare una funzione che riesca a calcolare il bioma finale quindi 
-            //    restituendo valori di temperatura, umidità e densità di vegetazione estremi. Altrimenti 
-            //    non arriviamo ad un bioma assoluto. 
-
-        //3. Conoscendo il bioma iniziale e il bioma finale campioniamo parametri di temperatura e umidità 
-        // nel range [iniziale, finale]. 
-                //a) Dobbiamo capire bene cosa vuol dire campionare anche perché il campionamento deve essere 
-                // "direzionale". Ad esempio se il bioma finale deve essere desertico ci aspettiamo che 
-                // la temperatura sia alta e l'umidità bassa, quindi il campionamento deve essere fatto in modo
-                // da riflettere queste aspettative regredendo tra i vari chunk la vegetazione. 
-
-
-        //4. A questo punto non dobbiamo fare altro che interpolare i parametri di temperatura, umidità e densità di vegetazione
-            // a) L'interpolazione deve essere fatta in modo da avere un passaggio graduale tra i vari chunk,
-            //    come potremmo fare? usare un polinomio? esistono tecniche più intelligenti?
-        
-        //5. a questo punto modifichiamo this.params.trees.density e i valori di temperatura e umidità facendo si che 
-        // tutti i prossimi chunk nella drawDistance usino tali valori. 
-
-        //6. Raggiunto il bioma finale si ricomincia da capo con un nuovo bioma iniziale casuale. 
-        
-    }
-    /**
-     * Initialize the initial values of temperature and humidity.
-     * @return. {temperature, humidity} - The initial values of temperature and humidity.
-     */
     
     
     

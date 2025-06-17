@@ -25,7 +25,7 @@ export class World extends THREE.Group{
             scale: 30,           // scala base per l’ottava 0
             magnitude: 0.1,      // ampiezza complessiva (verrà applicata dopo)
             offset: 0.1,         // spostamento (così non avremo mai height = 0)
-            waterOffset: 1,
+            waterOffset: 3,
             //octaves: 4,          // numero di ottave
             //persistence: 0.9,    // di quanto diminuisce ampiezza da un’ottava alla successiva
             //lacunarity: 2.0      // di quanto aumenta frequenza da un’ottava alla successiva
