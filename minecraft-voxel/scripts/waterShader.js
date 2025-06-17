@@ -19,7 +19,9 @@ export const waterUniforms = {
     tint:     { value: new THREE.Color(0x92c6e9) },
     alpha:    { value: 0.6 },
     normalTex:   { value: normalMap },
-    normalOffset:{ value: new THREE.Vector2(0,0) }
+    normalOffset:{ value: new THREE.Vector2(0,0) },
+    // tilting: { value: 2.0 },
+    // normalScale : {value: 2.0}
 };
 
 
@@ -58,7 +60,7 @@ export const waterFragment = /* glsl */`
     float fres = pow(1.0-dot(N,V), 3.0);
 
 
-    vec3 col = mix(baseCol, baseCol*1.3, fres*0.25);
+    vec3 col = mix(baseCol, baseCol*1.3, fres*0.25)*tint; // Fresnel effect
     float a  = mix(t1.a,  t2.a,  0.5) * alpha;
     gl_FragColor = vec4(col, a);
     }

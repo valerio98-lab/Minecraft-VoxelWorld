@@ -8,6 +8,12 @@ import { BLOCKS } from './block';
 import { setupUI } from './ui';
 import { ModelLoader } from './modelLoader';
 import {buildSteve, updateWalkCycle} from './steve';
+import { EffectComposer }  from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass }      from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { SSRPass }         from 'three/examples/jsm/postprocessing/SSRPass.js';
+import { ReflectorForSSRPass } from 'three/examples/jsm/objects/ReflectorForSSRPass.js';
+import {OutputPass} from 'three/examples/jsm/postprocessing/OutputPass.js';
+
 
 // Renderer setup
 const renderer = new THREE.WebGLRenderer();
@@ -45,17 +51,78 @@ world.generate();
 scene.add(world);
 
 
+
+/** =====================SSR BLOCK==============================*/
+
+const WATER_LEVEL = world.params.terrain.waterOffset + 0.4; // Water level
+const REF_HALF = world.WorldChunkSize.width * (world.visibleDistance +1);  // Half of the reflection plane size
+const reflGeo = new THREE.PlaneGeometry(REF_HALF*2, REF_HALF*2);
+
+
+const waterReflector = new ReflectorForSSRPass(reflGeo, {
+  clipBias: 0.0003, textureWidth:512, textureHeight:512, color:0x889999
+});
+
+waterReflector.rotateX(-Math.PI/2);
+waterReflector.position.set(0,WATER_LEVEL,0); 
+waterReflector.visible = false;
+scene.add(waterReflector);
+
+const composer   = new EffectComposer(renderer);
+const renderPass = new RenderPass(scene, player.camera);
+composer.addPass(renderPass);
+
+const ssrPass = new SSRPass({
+  renderer,
+  scene,
+  camera: player.camera,          // la aggiorniamo a runtime
+  width:  window.innerWidth,
+  height: window.innerHeight,
+  camera:player.camera,
+  width: window.innerWidth,
+  height: window.innerHeight,
+  // altre opzioni: thickness, maxDistance, fresnel, opacity…
+});
+
+ssrPass.reflector = waterReflector; // Set the reflector for SSR
+composer.addPass(ssrPass);
+
+
+
+const outputPass = new OutputPass();
+composer.addPass(outputPass);
+
+ssrPass.selects = [];
+scene.traverse(obj => {
+  if (obj.userData.isWater) ssrPass.selects.push(obj);
+});
+ssrPass.opacity = 0.75;
+ssrPass.thickness = 0.12; // Thickness of the SSR effect
+ssrPass.enableBlur = true; // Enable blur for SSR effect
+ssrPass.blurRadius = 0.5;
+ssrPass.blurSigma = 4.0;
+ssrPass.maxDistance = 60; // Maximum distance for SSR effect
+//ssrPass.fadeDistance = 40;
+
+
+/** =====================END SSR BLOCK==============================*/
+
+
+
+/** =====================STEVE BLOCK==============================*/
 // Add Steve to the scene
 const steve = buildSteve();
 scene.add(steve);
+
 
 const modelLoader = new ModelLoader();
 modelLoader.loadModels((models) => {
   player.tool.setMesh(models.pickaxe);
   steve.userData.armR.add(player.tool);
-
-  
 });
+
+
+/** =====================END STEVE BLOCK==============================*/
 
 function setupLighting() {
   sun.intensity = 1.5;
@@ -100,13 +167,16 @@ document.addEventListener('mousedown', onMouseDown);
 
 // Events
 window.addEventListener('resize', () => {
-  // Resize camera aspect ratio and renderer size to the new window size
-  orbitCamera.aspect = window.innerWidth / window.innerHeight;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  renderer.setSize(w, h);
+  composer.setSize(w, h);
+  ssrPass.setSize(w, h);
+
+  orbitCamera.aspect  = w / h;
   orbitCamera.updateProjectionMatrix();
-  player.camera.aspect = window.innerWidth / window.innerHeight;
+  player.camera.aspect = w / h;
   player.camera.updateProjectionMatrix();
-  
-  renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
 // UI Setup
@@ -173,12 +243,23 @@ function animate() {
     }
     });
 
-  renderer.render(scene, player.controls.isLocked ? player.camera : orbitCamera);
-  stats.update();
+    const STEP = REF_HALF;                         // scatta ogni “tile”
+    waterReflector.position.x = Math.floor(player.position.x / STEP) * STEP + STEP * 0.5;
+    waterReflector.position.z = Math.floor(player.position.z / STEP) * STEP + STEP * 0.5;
 
-  previousTime = currentTime;
+    const activeCam = player.controls.isLocked ? player.camera : orbitCamera;
+
+   if (activeCam === orbitCamera){
+    renderer.render(scene, orbitCamera);
+  } else {
+    composer.render();
+   }
+
+    stats.update();
+
+    previousTime = currentTime;
 }
 
-setupUI(world, player, physics, scene);
+setupUI(world, player, physics, scene, {ssrPass});
 setupLighting();
 animate();

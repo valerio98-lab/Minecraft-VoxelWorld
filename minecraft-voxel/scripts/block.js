@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { waterFragment, waterUniforms, waterVertex } from './waterShader';
 
 const textureLoader = new THREE.TextureLoader();
 
@@ -9,6 +10,24 @@ function loadTexture(url) {
     texture.magFilter = THREE.NearestFilter; // Use nearest filter for pixelated look
     return texture;
 }
+
+const waterCubeMat = new THREE.MeshLambertMaterial({
+  color: 0x3d9bd9,
+  transparent: true,
+  opacity: 0.01,
+  depthWrite: true   // niente z-fighting interno
+});
+
+// materiale superficie (shader esistente)
+const waterSurfaceMat = new THREE.ShaderMaterial({
+  uniforms: THREE.UniformsUtils.clone(waterUniforms),
+  vertexShader: waterVertex,
+  fragmentShader: waterFragment,
+  transparent: true,
+  opacity: 0.8, // Opacità della superficie dell'acqua
+  depthWrite: true, // evita conflitti di profondità con il fondo
+  side: THREE.FrontSide
+});
 
 const textures = {
     grass: loadTexture('textures/grass.png'),
@@ -303,6 +322,13 @@ export const BLOCKS = {
             new THREE.MeshLambertMaterial({ map: textures.ice, transparent: false, opacity: 0.8 })
         ]
     },
+      water: {
+    id: 21,
+    name: 'Water',
+    // array a 6 elementi → InstancedMesh del cubo userà il lambert
+    material: [ waterCubeMat, waterCubeMat, waterSurfaceMat,
+                waterSurfaceMat, waterCubeMat, waterCubeMat ],
+  }
 }
 
 

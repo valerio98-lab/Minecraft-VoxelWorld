@@ -106,7 +106,7 @@ export class WorldChunk extends THREE.Group{
                         this.setId(x, y, z, blockId); // Set the block ID at the current position
 
 
-                        if (this.rng.random() < 0 ) { // Check if a tree should be generated based on the tree density
+                        if (this.rng.random() < this.treeDensity && y > this.params.terrain.waterOffset) { // Check if a tree should be generated based on the tree density
                             // Randomly generate trees based on the frequency parameter
                             this.TerrainCustomization.generateTrees(x, height, z, this.biome, seedInt); // Generate a tree at the current position
                         }

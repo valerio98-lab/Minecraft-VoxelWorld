@@ -7,7 +7,6 @@ export class ModelLoader {
   };
 
   loadModels(onLoad) {
-    // compone l’URL in modo agnostico (dev e produzione)
     const pickaxeUrl = `${import.meta.env.BASE_URL}models/minecraft_diamond-pickaxe.glb`;
 
     this.loader.load(
