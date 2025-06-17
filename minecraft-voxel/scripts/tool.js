@@ -46,10 +46,10 @@ export class Tool extends THREE.Group {
         mesh.castShadow = true;
 
 
-        this.position.set(0.35, -0.1, -0.7);
+        this.position.set(0.0, -0.4, -0.5);
         this.scale.set(0.03, 0.03, 0.03);
         this.rotation.z = Math.PI/2; // Rotate the tool to face the player
-        this.rotation.x = -Math.PI / 2; // Adjust rotation to align with the player's view
+        this.rotation.x = (-Math.PI / 2); // Adjust rotation to align with the player's view
         this.rotation.y = Math.PI + 0.2; // Adjust rotation to align with the player's view
     }
 

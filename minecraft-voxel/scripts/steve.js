@@ -138,9 +138,9 @@ export function buildSteve() {
   return steve;
 }
 
-export function updateWalkCycle(steve, dt, horizSpeed) {
+export function updateWalkCycle(steve, dt, horizSpeed, headPitch = 0) {
   const ud = steve.userData;
-  const freq = 8; // steps per second at 1 unit/s
+  const freq = 0.5; // steps per second at 1 unit/s
   ud.phase += horizSpeed * freq * dt * Math.PI;
 
   const amp = 0.5;
@@ -151,5 +151,6 @@ export function updateWalkCycle(steve, dt, horizSpeed) {
   ud.legR.rotation.x =  swing;
 
   // slight head bob
-  ud.head.rotation.x = 0.05 * Math.cos(ud.phase * 0.5);
+  const bob = 0.05 * Math.cos(ud.phase * 0.5);
+  ud.head.rotation.x = headPitch + bob;  
 }

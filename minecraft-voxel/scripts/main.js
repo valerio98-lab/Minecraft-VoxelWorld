@@ -27,12 +27,6 @@ const controls = new OrbitControls(orbitCamera, renderer.domElement);
 controls.target.set(16, 0, 16);
 controls.update();
 
-const modelLoader = new ModelLoader();
-modelLoader.loadModels((models) => {
-  player.tool.setMesh(models.pickaxe);
-  
-});
-
 // Scene setup
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x80a0e0, 50, 100);
@@ -44,13 +38,23 @@ const sun = new THREE.DirectionalLight();
 const playerCameraHelper = new THREE.CameraHelper(player.camera);
 scene.add(playerCameraHelper);
 // Add the orbit camera to the scene
-playerCameraHelper.visible = true; // Hide the camera helper by default
+playerCameraHelper.visible = false; // Hide the camera helper by default
 
 world.generate();
 scene.add(world);
 
+
+// Add Steve to the scene
 const steve = buildSteve();
 scene.add(steve);
+
+const modelLoader = new ModelLoader();
+modelLoader.loadModels((models) => {
+  player.tool.setMesh(models.pickaxe);
+  steve.userData.armR.add(player.tool);
+
+  
+});
 
 function setupLighting() {
   sun.intensity = 1.5;
@@ -130,26 +134,21 @@ function animate() {
     
   const forwardXZ = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).normalize(); // Calculate forward direction in XZ plane
   steve.position.copy(player.position);
-  steve.position.y -= player.height;  // Position Steve at the player's feet
-  steve.position.addScaledVector(forwardXZ, -0.3); // Adjust Steve's position slightly forward
-
-  
-  const horizontalLength = Math.sqrt(camDir.x*camDir.x + camDir.z*camDir.z);
-  // pitch completo in [-π, +π]
-  let pitch = Math.atan2(camDir.y, horizontalLength);
-  pitch = -pitch;
-
-  const maxHeadPitch = Math.PI / 4; // 45°
-  pitch = THREE.MathUtils.clamp(pitch, -maxHeadPitch, +maxHeadPitch);
-  steve.userData.head.rotation.x = pitch;
-
-
-  steve.userData.torso.rotation.y = yaw + Math.PI; // Set torso rotation to match camera yaw
+  steve.position.y -= player.height;           // piedi
+  steve.position.addScaledVector(forwardXZ, -0.3); // arretra busto
   steve.userData.head.rotation.y = Math.PI; // Set head rotation to match camera yaw
 
+  // rotazioni
+  steve.userData.torso.rotation.y = yaw + Math.PI;
 
+  // calcola pitch limitato
+  const horizontalLen = Math.sqrt(camDir.x*camDir.x + camDir.z*camDir.z);
+  let pitch = Math.atan2(camDir.y, horizontalLen);
+  pitch = THREE.MathUtils.clamp(pitch, -Math.PI/4, Math.PI/4);
+
+  // animazione arti + testa
   const hSpeed = player.worldVelocity.clone().setY(0).length();
-  updateWalkCycle(steve, dt, hSpeed);
+  updateWalkCycle(steve, dt, hSpeed, pitch);
 
   //orienta nella direzione di movimento
 
