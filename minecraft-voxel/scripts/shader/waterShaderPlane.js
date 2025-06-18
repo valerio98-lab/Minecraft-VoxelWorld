@@ -20,8 +20,10 @@ export const waterUniforms = {
     alpha:    { value: 0.6 },
     normalTex:   { value: normalMap },
     normalOffset:{ value: new THREE.Vector2(0,0) },
-    // tilting: { value: 2.0 },
-    // normalScale : {value: 2.0}
+    normalMix: { value: 0.90 }, // quanto peso dare alla normalMap
+    reflectScale: { value: 0.1 }, // quanto intensificare il Fres
+    reflectIntensity: { value: 0.5 }, // + o - brillantezza del colore riflesso
+
 };
 
 
@@ -42,6 +44,11 @@ export const waterFragment = /* glsl */`
     uniform float alpha;
     varying vec2  vUv;
 
+    uniform float   normalMix;       // peso della normal map 
+    uniform float   reflectScale;    // scala Fresnel 
+    uniform float   reflectIntensity; // intensità colore riflesso
+
+
     void main() {
 
     vec2 uv1 = vUv * vec2(8.0, 1.0);   // TILE orizzontale *8, verticale *8 (8 / 32 = 0.25)
@@ -53,14 +60,13 @@ export const waterFragment = /* glsl */`
     vec3 nTex = texture2D(normalTex, uvN).xyz * 2.0 - 1.0;
     nTex.g = -nTex.g;
 
-
-    vec3 N = normalize(mix(vec3(0,0,1), nTex, 0.6)); 
+    vec3 N = normalize(mix(vec3(0,0,1), nTex, normalMix)); 
     vec3 V = normalize(vec3(0.0, 0.0, 1.0)); //view direction perpendicolare
 
     float fres = pow(1.0-dot(N,V), 3.0);
 
 
-    vec3 col = mix(baseCol, baseCol*1.3, fres*0.25)*tint; // Fresnel effect
+    vec3 col = mix(baseCol, baseCol*reflectIntensity, fres*reflectScale)*tint; // Fresnel effect
     float a  = mix(t1.a,  t2.a,  0.5) * alpha;
     gl_FragColor = vec4(col, a);
     }

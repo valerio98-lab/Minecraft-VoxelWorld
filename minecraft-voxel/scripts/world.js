@@ -5,6 +5,8 @@ import { BiomeManager } from './biomeManager';
 import { BLOCKS } from './block';
 import { DataStore } from './dataStore';
 import { RNG } from './rng';
+import { Parameters } from './params';
+
 const ric = window.requestIdleCallback || 
             function (cb, opts) { return setTimeout(() => cb({ timeRemaining: () => 0 }), opts?.timeout || 1); };
 
@@ -18,58 +20,11 @@ export class World extends THREE.Group{
     WorldChunkSize={width: 32, height: 64}
 
 
-
-    params = {
-        terrain: {
-            seed: 0,
-            scale: 30,           // scala base per l’ottava 0
-            magnitude: 0.1,      // ampiezza complessiva (verrà applicata dopo)
-            offset: 0.1,         // spostamento (così non avremo mai height = 0)
-            waterOffset: 2,
-            //octaves: 4,          // numero di ottave
-            //persistence: 0.9,    // di quanto diminuisce ampiezza da un’ottava alla successiva
-            //lacunarity: 2.0      // di quanto aumenta frequenza da un’ottava alla successiva
-        },
-        biomes:{
-            scale:12,
-            variation:{
-                amplitude:0.2,
-                scale:30
-            },
-            Tundra2Temperate: 0.25,
-            Temperate2Forest: 0.5,
-            Forest2Desert: 0.75,
-        },
-        trees:{
-            trunk: {
-                minHeight: 4, // altezza minima del tronco
-                maxHeight: 10, // altezza massima del tronco
-            },
-            canopy: {
-                minRadius: 1, // raggio minimo della chioma
-                maxRadius: 10, // raggio massimo della chioma
-                density: 0.6, // densità della chioma (percentuale di blocchi foglia)
-                transparentRatio: 0.4, // rapporto di trasparenza della chioma (percentuale di blocchi foglia trasparenti)
-            }, 
-            frequency: 0.003, // frequenza di generazione degli alberi
-        }, 
-        clouds: {
-            scale: 30,
-            density: 0.3,
-            layers: 2
-            
-        }, 
-        caves : {
-            scale: 20,
-            threshold: 0.6,
-            yMin: 4.0, // altezza minima di scavo per le caverne
-            yMax: 20.0, // altezza massima di scavo per le caverne
-        }
-    };
     dataStore = new DataStore();
     constructor(seed=0){
         super();
         this.dataStore.clear();
+        this.params = new Parameters().params; // Initialize parameters from the Parameters class
         this.seed = seed;
         this.rng = new RNG(this.params.terrain.seed); // Initialize RNG with the seed from params
         this.seedInt = Math.floor(this.rng.random() * 0x100000000);
@@ -107,7 +62,6 @@ export class World extends THREE.Group{
                 const { temperature, humidity, treeDensity } = this.BiomeManager.sampleClimate(32, 32);
                 const chunk = new WorldChunk(
                     this.WorldChunkSize, 
-                    this.params, 
                     this.dataStore, 
                     this.BiomeManager,
                     temperature,
@@ -201,7 +155,6 @@ export class World extends THREE.Group{
         const { temperature, humidity, treeDensity } = this.BiomeManager.sampleClimate(WorldCoords.x, WorldCoords.z);
         const chunk = new WorldChunk(
             this.WorldChunkSize, 
-            this.params, 
             this.dataStore, 
             this.BiomeManager,
             temperature,
@@ -238,7 +191,6 @@ export class World extends THREE.Group{
 
         const { chunkCoords, blockInChunk } = this.worldToLocalChunk(worldX, worldY, worldZ);
         const chunk = this.getChunk(chunkCoords.x, chunkCoords.z);
-    
         if (!chunk) return;
     
         chunk.removeBlockInChunk(blockInChunk.x, blockInChunk.y, blockInChunk.z);
@@ -254,8 +206,49 @@ export class World extends THREE.Group{
             if (!neighborChunk) continue;
 
             const nBlock = neighborChunk.getBlock(b.x, b.y, b.z);
-            if (nBlock) neighborChunk.revealBlockInChunk(b.x, b.y, b.z);
+            if (nBlock && nBlock.id === BLOCKS.water.id){
+                this.FillWater(worldX, worldY, worldZ);
+            }
+            neighborChunk.revealBlockInChunk(b.x, b.y, b.z);
         }
+    }
+
+    FillWater(x,y,z){
+        const dirs = [
+        [ 0,  1,  0], [ 0, -1,  0],
+        [ 1,  0,  0], [-1,  0,  0], 
+        [ 0,  0,  1], [ 0,  0, -1],
+        ];
+
+        const queue = [{x: x, y: y, z: z}];
+        const seen = new Set();
+
+        while (queue.length > 0) {
+            console.log('queue', queue.length); 
+            const {x, y, z} = queue.shift(); 
+            const key = `${x},${y},${z}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+
+            const { chunkCoords: c, blockInChunk: b } = this.worldToLocalChunk(x, y, z);
+            console.log('chunkCoords', c, b);
+            const chunk = this.getChunk(c.x, c.z);
+            if (!chunk) continue;
+
+            const block = chunk.getBlock(b.x, b.y, b.z);
+            console.log('block', block, b.x, b.y, b.z);
+            if( !block || block.id !== BLOCKS.empty.id) continue;
+
+            chunk.setId(b.x, b.y, b.z, BLOCKS.water.id); 
+            chunk.revealBlockInChunk(b.x, b.y, b.z);
+            
+            for (const [dx, dy, dz] of dirs) {
+                const nBlock = chunk.getBlock(b.x + dx, b.y, b.z + dz);
+                if (nBlock && nBlock.id === BLOCKS.empty.id) queue.push({x: x + dx, y: y+dy, z: z + dz});
+                console.log(queue.length); 
+            }
+        }
+
     }
 
     addBlock(worldX, worldY, worldZ, blockId) {

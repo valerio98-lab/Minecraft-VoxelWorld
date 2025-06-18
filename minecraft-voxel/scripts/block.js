@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { waterFragment, waterUniforms, waterVertex } from './waterShader';
+import { waterFragment, waterUniforms, waterVertex } from './shader/waterShaderBlock';
 
 const textureLoader = new THREE.TextureLoader();
 
@@ -15,7 +15,7 @@ const waterCubeMat = new THREE.MeshLambertMaterial({
   color: 0x3d9bd9,
   transparent: true,
   opacity: 0.01,
-  depthWrite: true   // niente z-fighting interno
+  depthWrite: false   // niente z-fighting interno
 });
 
 // materiale superficie (shader esistente)
@@ -24,8 +24,8 @@ const waterSurfaceMat = new THREE.ShaderMaterial({
   vertexShader: waterVertex,
   fragmentShader: waterFragment,
   transparent: true,
-  opacity: 0.8, // Opacità della superficie dell'acqua
-  depthWrite: true, // evita conflitti di profondità con il fondo
+  opacity: 0.5, // Opacità della superficie dell'acqua
+  depthWrite: false, // evita conflitti di profondità con il fondo
   side: THREE.FrontSide
 });
 
@@ -325,7 +325,6 @@ export const BLOCKS = {
       water: {
     id: 21,
     name: 'Water',
-    // array a 6 elementi → InstancedMesh del cubo userà il lambert
     material: [ waterCubeMat, waterCubeMat, waterSurfaceMat,
                 waterSurfaceMat, waterCubeMat, waterCubeMat ],
   }

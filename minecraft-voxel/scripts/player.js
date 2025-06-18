@@ -3,6 +3,8 @@ import { WorldChunk } from './worldChunk';
 import { BLOCKS } from './block';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { Tool } from './tool';
+import { userData } from 'three/src/nodes/TSL.js';
+import { Parameters } from './params';
 
 const CENTER_SCREEN = new THREE.Vector2();
 export class Player {
@@ -10,6 +12,7 @@ export class Player {
     height = 1.8; // Player height for collision detection
     jumpSpeed = 10;
     onGround = false;
+    inWater = false; // Whether the player is in water
 
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
     cameraHelper = new THREE.CameraHelper(this.camera);
@@ -29,6 +32,7 @@ export class Player {
   constructor(scene) {
     this.position.set(32, 50, 32);
     this.cameraHelper.visible = false; 
+    this.params = new Parameters();
     
     this.camera.layers.enable(1); // Enable layer 1 for the camera
     scene.add(this.camera);
@@ -124,21 +128,62 @@ export class Player {
   /**
    * @param {Number} dt 
    */
-  updatePlayerInputs(dt) {
-    if (this.controls.isLocked === true) {
-      this.velocity.x = this.input.x;
-      this.velocity.z = this.input.z;
+  updatePlayerInputs(dt, onGround, inWater) {
+    if (!this.controls.isLocked) return; 
+      const FRICTION_GROUND = 2.0;   // forza con i piedi a terra
+      const FRICTION_AIR    =  1.5;   // piccolo freno in aria
+      const TURN_BRAKE      = 0.0;   // quanto velocemente cancella il laterale
+
+      const maxSpeed  = inWater ? this.maxSpeed * 0.6 : this.maxSpeed;
+      const accelRate = inWater ?  30.0 : 40.0;     // più lento in acqua
+      const fric = onGround ? FRICTION_GROUND : FRICTION_AIR;
+
+
+      const f = Math.max(0, 1 - fric * dt);
+      this.velocity.x *= f;
+      this.velocity.z *= f;
+
+      const wishDir = new THREE.Vector3(this.input.x, 0, this.input.z);
+      if (wishDir.lengthSq() > 0) {
+        wishDir.normalize();
+        //wishDir.applyEuler(new THREE.Euler(0, this.camera.rotation.y, 0));
+      }
+      const wishVel = wishDir.clone().multiplyScalar(maxSpeed);
+
+
+      const horizVel = new THREE.Vector3(this.velocity.x, 0, this.velocity.z);
+      if (wishVel.lengthSq() > 0) {                          // evito /0
+        const wishDirN = wishVel.clone().normalize();        // unit
+        const lateral  = horizVel.clone().sub(
+            wishDirN.clone().multiplyScalar(horizVel.dot(wishDirN))
+        );
+        const latMag = lateral.length();
+
+      if (latMag > 0) {
+        const drop   = Math.min(latMag, TURN_BRAKE * dt);
+        lateral.setLength(latMag - drop);
+        const newVel = wishDirN.multiplyScalar(horizVel.dot(wishDirN)).add(lateral);
+        this.velocity.x = newVel.x;
+        this.velocity.z = newVel.z;
+      }
+    }
+      
+    const delta     = wishVel.clone().sub(horizVel);     
+    const accelStep = accelRate * dt;
+
+    if (delta.lengthSq() > accelStep * accelStep) {
+      delta.setLength(accelStep);
+    }
+    this.velocity.x += delta.x;
+    this.velocity.z += delta.z;
+
+    document.getElementById('info-player-position').innerHTML = this.toString();
+}
+
+  applyMotion(dt) {
       this.controls.moveRight(this.velocity.x * dt);
       this.controls.moveForward(this.velocity.z * dt);
       this.position.y += this.velocity.y * dt; // Apply vertical velocity
-
-      // only update the on-screen position if the element actually exists
-      // const posEl = document.getElementById('info-player-position');
-      // if (posEl) {
-      //   posEl.innerHTML = this.toString();
-      // }
-      document.getElementById('info-player-position').innerHTML = this.toString();
-    }
   }
 
   updateBoundingCylinder() {

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BLOCKS } from './block';
+import { Parameters} from './params';
 
 
 const collisionBoxMaterial = new THREE.MeshBasicMaterial({
@@ -25,16 +26,31 @@ export class Physics {
     constructor(scene, player) {
         this.helpers = new THREE.Group();  
         this.helpers.visible = false;  
+        this.params = new Parameters();
         scene.add(this.helpers); 
     }
 
 
     update(dt, player, world){
         this.accumulator += dt;
+        
+        const planeEnabled = !!this.params.get_subfield('water', 'waterPlane'); // 
+        // Calcolo qui una sola volta il waterLevel
+        const waterLevel  = this.params.get_subfield('water', 'waterOffset') + 0.4;
+        player.inWater = player.position.y - (player.height / 2) < waterLevel; 
 
         while (this.accumulator >= this.timestep) {
+            const bottomY  = player.position.y - player.height / 2;
+            const inWater  = bottomY < waterLevel;
+            player.updatePlayerInputs(this.timestep, player.onGround, inWater); // Update the player's position based on input and velocity
             player.velocity.y -= this.gravity * this.timestep; // Apply gravity to the player's vertical velocity
-            player.updatePlayerInputs(this.timestep); // Update the player's position based on input and velocity
+
+            if (planeEnabled) {
+                this.applyFlotation(player, waterLevel); 
+                this.applyWaterDrag(player, waterLevel);
+            } 
+            player.applyMotion(this.timestep); // Apply the player's motion based on the updated velocity
+
             this.detectCollisions(player, world); // Detect collisions with the world
             this.accumulator -= this.timestep; // Reduce the accumulator by the time step
         }
@@ -81,7 +97,7 @@ export class Physics {
 
                     const blockId = world.getBlock(x, y, z)?.id;
 
-                    if (blockId && blockId !== BLOCKS.empty.id) { 
+                    if (blockId && blockId !== BLOCKS.empty.id && blockId !== BLOCKS.water.id) { // Exclude empty and water blocks
                         
                         possibleCollisions.push(new THREE.Vector3(x, y, z));
                         // Add a collision box to visualize the collision
@@ -168,6 +184,33 @@ export class Physics {
         }
     }
 
+    applyFlotation(player, waterLevel) {
+        const bottomY = player.position.y - (player.height/2);
+        const wave = 0.2 * Math.sin(performance.now() * 0.001); // ±0.1 blocchi
+        const depthError = (waterLevel+wave) - bottomY+0.5; 
+        if (depthError <= 0) return; 
+
+        const k = 40;  // Spring constant for the buoyancy force
+        const c = 0.5; // Damping coefficient
+
+        const acc = k * depthError - c * player.velocity.y; // Buoyancy force
+
+        player.velocity.y += acc * this.timestep; // Apply buoyancy force to the player's vertical velocity
+
+    }
+
+    applyWaterDrag(player, waterLevel) {
+        const bottomY    = player.position.y - player.height / 2;
+
+        if (bottomY >= waterLevel) return;
+
+        const dragCoeff = 8.0;
+        const f = 1 - dragCoeff * this.timestep; 
+        
+        player.velocity.multiplyScalar(f); // smorza X, Y, Z
+    }
+
+
 
     clamp(player_point, boxMin, boxMax) {
         return Math.max(boxMin, Math.min(player_point, boxMax));
@@ -210,5 +253,7 @@ export class Physics {
         contactPoint.position.copy(position);
         this.helpers.add(contactPoint);
     }
+
+
 
 }

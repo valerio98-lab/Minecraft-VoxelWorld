@@ -32,7 +32,7 @@ export class Tool extends THREE.Group {
 
     update() {
         if (this.animate && this.toolMesh) {
-            console.log('Updating tool animation');
+            //console.log('Updating tool animation');
             this.toolMesh.rotation.y = this.amplitude * Math.sin(this.animationTime * this.animationSpeed);
         }
     }

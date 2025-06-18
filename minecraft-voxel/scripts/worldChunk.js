@@ -5,8 +5,10 @@ import { makeNoise3D } from 'open-simplex-noise';
 import {RNG } from './rng.js';
 import { BLOCKS, resources } from './block.js';
 import { TerrainCustomization } from './terrainCustomization.js';
+import {Parameters } from './params.js'; // Import parameters for terrain generation
 
 const geometry = new THREE.BoxGeometry(1, 1, 1);
+const waterGeometry = new THREE.BoxGeometry(1, 0.8, 1); // Geometry for water plane
 const noise3DCache = new Map(); // Cache for 3D noise to avoid re-creating it
 const noise2DCache = new Map(); // Cache for 2D noise to avoid re-creating it
 
@@ -21,11 +23,11 @@ export class WorldChunk extends THREE.Group{
     data = []; // 3D array to hold block datas
 
 
-    constructor(size, params, dataStore, biomeManager, temperature, humidity, treeDensity) {
+    constructor(size, dataStore, biomeManager, temperature, humidity, treeDensity) {
         super();
         this.loaded = false; // Flag to indicate if the chunk is loaded
         this.size = size;
-        this.params = params; // Parameters for terrain generation
+        this.params = new Parameters() // Parameters for terrain generation
         this.dataStore = dataStore; // Data store for managing chunk data
         this.biomeManager = biomeManager // Create an instance of TerrainCustomization
         this.TerrainCustomization = new TerrainCustomization(this); // Create an instance of TerrainCustomization
@@ -34,10 +36,11 @@ export class WorldChunk extends THREE.Group{
         this.treeDensity = treeDensity; // Set the tree density for the chunk
         this.biome = this.biomeManager.getBiome(this.temperature, this.humidity); // Get the biome based on temperature and humidity
         this.blockType = this.biomeManager.getBlockIDPerBiome(this.biome); 
+        this.waterPlane = this.params.get_subfield('water', 'waterPlane'); // Check if water plane is enabled
     }
 
     generate() {
-        this.rng = new RNG(this.params.terrain.seed); // Initialize RNG with the seed from params
+        this.rng = new RNG(this.params.get_subfield('terrain', 'seed')); // Initialize RNG with the seed from params
         const randomFloat = this.rng.random();
         const seedInt = Math.floor(randomFloat * 0x100000000); // Convert to integer seed for noise generation
         this.initializeTerrain();
@@ -69,6 +72,7 @@ export class WorldChunk extends THREE.Group{
     }
 
     generateTerrain(seedInt) {
+        const scale = this.params.get_subfield('terrain', 'scale'); // Get the scale for terrain generation
         let noise2D = noise2DCache.get(seedInt);
         if (!noise2D) {
             noise2D = makeNoise2D(seedInt); // Create a new 2D noise generator if not in cache
@@ -78,8 +82,8 @@ export class WorldChunk extends THREE.Group{
         // and applying the noise function to determine the height of each block
         for (let x = 0; x < this.size.width; x++) {
             for (let z = 0; z < this.size.width; z++) {
-                const sampleX = ((this.position.x + x) / this.params.terrain.scale) //* frequency;
-                const sampleZ = ((this.position.z + z) / this.params.terrain.scale) //* frequency;
+                const sampleX = ((this.position.x + x) / scale) //* frequency;
+                const sampleZ = ((this.position.z + z) / scale) //* frequency;
                 const raw = noise2D(sampleX, sampleZ); // Get the noise value for the current coordinates in the range [-1, 1]
 
                 /**
@@ -90,23 +94,30 @@ export class WorldChunk extends THREE.Group{
                  * The parameters height is therefore the height of the terrain at a given point and therefore 
                  * the number of blocks that will be set to fill up to that height.
                  */
-                const scaledNoise = this.params.terrain.magnitude + (this.params.terrain.offset * raw);
+                const scaledNoise = this.params.get_subfield('terrain', 'magnitude') + (this.params.get_subfield('terrain', 'offset') * raw);
 
                 let height = Math.floor(this.size.height * scaledNoise);
                 height = Math.max(0, Math.min(height, this.size.height-1)); // Clamp height to valid range
+
+                const waterLevel = this.params.get_subfield('water', 'waterOffset'); // Get the water level from parameters
+                if (!this.waterPlane){
+                     // Get the water level from parameters
+                    for (let y = height + 1; y <= waterLevel; y++) {
+                        // se la cella è ancora vuota la trasformiamo in acqua
+                        if (this.getBlock(x, y, z).id === BLOCKS.empty.id) {
+                            this.setId(x, y, z, BLOCKS.water.id);
+                        }
+                    }
+                }
                 
                 
                 for (let y = 0; y < this.size.height; y++) {
-                    // if (y <= this.params.terrain.waterOffset) {
-                    //     this.setId(x, y, z, BLOCKS.sand.id);
-                    // }
                     if (y=== height) {
                         const blockId = this.TerrainCustomization.pickBlock(x, z, this.blockType, noise2D); // Set the block ID to the generated block type
                         
                         this.setId(x, y, z, blockId); // Set the block ID at the current position
 
-
-                        if (this.rng.random() < this.treeDensity && y > this.params.terrain.waterOffset) { // Check if a tree should be generated based on the tree density
+                        if (this.rng.random() < this.treeDensity && y > waterLevel) { // Check if a tree should be generated based on the tree density
                             // Randomly generate trees based on the frequency parameter
                             this.TerrainCustomization.generateTrees(x, height, z, this.biome, seedInt); // Generate a tree at the current position
                         }
@@ -158,7 +169,7 @@ export class WorldChunk extends THREE.Group{
 
         // lookup table for block types
 
-        this.TerrainCustomization.generateWater(); // Generate water using TerrainCustomization
+        if (this.waterPlane) this.TerrainCustomization.generateWater(); // Generate water using TerrainCustomization
 
         const meshes = {}; 
         Object.values(BLOCKS)
@@ -171,6 +182,11 @@ export class WorldChunk extends THREE.Group{
                 mesh.receiveShadow = true; // Enable shadow receiving for the mesh
                 mesh.name = blockType.id; // Set the name of the mesh to the block name
 
+                if (!this.waterPlane && blockType.id === BLOCKS.water.id) {
+                    mesh.geometry = waterGeometry; // Use a different geometry for water
+                    mesh.userData.isWater = true; 
+                    mesh.renderOrder = 1;       // Set render order for water to render after other blocks
+                }
                 meshes[blockType.id] = mesh; // Store the mesh in the lookup table
             });
 

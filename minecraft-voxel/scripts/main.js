@@ -13,9 +13,15 @@ import { RenderPass }      from 'three/examples/jsm/postprocessing/RenderPass.js
 import { SSRPass }         from 'three/examples/jsm/postprocessing/SSRPass.js';
 import { ReflectorForSSRPass } from 'three/examples/jsm/objects/ReflectorForSSRPass.js';
 import {OutputPass} from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { Parameters } from './params';
 
 
+/** =====================INITIAL SETUP==============================*/
 // Renderer setup
+const params = new Parameters();
+const waterPlane = params.get_subfield('water', 'waterPlane');
+console.warn = function() {}; // Suppress warnings for cleaner console output
+
 const renderer = new THREE.WebGLRenderer();
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -49,6 +55,8 @@ playerCameraHelper.visible = false; // Hide the camera helper by default
 
 world.generate();
 scene.add(world);
+
+/** =====================END INITIAL SETUP==============================*/
 
 
 
@@ -187,77 +195,96 @@ document.body.appendChild(stats.dom);
 let previousTime = performance.now();
 
 function animate() {
-  const currentTime = performance.now();
-  const dt = (currentTime - previousTime) / 1000;
+    const currentTime = performance.now();
+    const dt = (currentTime - previousTime) / 1000;
 
-  requestAnimationFrame(animate);
-  player.updateRay(world);
+    requestAnimationFrame(animate);
+    player.updateRay(world);
 
-  physics.update(dt, player, world);
-  world.update(player);
-  playerCameraHelper.update();
+    physics.update(dt, player, world);
+    world.update(player);
+    playerCameraHelper.update();
 
 
 
-// Update Steve's position and animation
-  const camDir = new THREE.Vector3();
-  player.camera.getWorldDirection(camDir);
-  const yaw = Math.atan2(camDir.x, camDir.z); // Calculate yaw from camera direction
-    
-  const forwardXZ = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).normalize(); // Calculate forward direction in XZ plane
-  steve.position.copy(player.position);
-  steve.position.y -= player.height;           // piedi
-  steve.position.addScaledVector(forwardXZ, -0.3); // arretra busto
-  steve.userData.head.rotation.y = Math.PI; // Set head rotation to match camera yaw
+  // Update Steve's position and animation
+    const camDir = new THREE.Vector3();
+    player.camera.getWorldDirection(camDir);
+    const yaw = Math.atan2(camDir.x, camDir.z); // Calculate yaw from camera direction
+      
+    const forwardXZ = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).normalize(); // Calculate forward direction in XZ plane
+    steve.position.copy(player.position);
+    steve.position.y -= player.height;           // piedi
+    steve.position.addScaledVector(forwardXZ, -0.3); // arretra busto
+    steve.userData.head.rotation.y = Math.PI; // Set head rotation to match camera yaw
 
-  // rotazioni
-  steve.userData.torso.rotation.y = yaw + Math.PI;
+    // rotazioni
+    steve.userData.torso.rotation.y = yaw + Math.PI;
 
-  // calcola pitch limitato
-  const horizontalLen = Math.sqrt(camDir.x*camDir.x + camDir.z*camDir.z);
-  let pitch = Math.atan2(camDir.y, horizontalLen);
-  pitch = THREE.MathUtils.clamp(pitch, -Math.PI/4, Math.PI/4);
+    // calcola pitch limitato
+    const horizontalLen = Math.sqrt(camDir.x*camDir.x + camDir.z*camDir.z);
+    let pitch = Math.atan2(camDir.y, horizontalLen);
+    pitch = THREE.MathUtils.clamp(pitch, -Math.PI/4, Math.PI/4);
 
-  // animazione arti + testa
-  const hSpeed = player.worldVelocity.clone().setY(0).length();
-  updateWalkCycle(steve, dt, hSpeed, pitch);
+    // animazione arti + testa
+    const hSpeed = player.worldVelocity.clone().setY(0).length();
+    updateWalkCycle(steve, dt, hSpeed, pitch);
 
-  //orienta nella direzione di movimento
+    //orienta nella direzione di movimento
 
-  //animazione di Steve degli arti
+    //animazione di Steve degli arti
 
-  sun.position.copy(player.position);
-  sun.position.sub(new THREE.Vector3(-50,-50,-50)); // Position sun above player
-  sun.target.position.copy(player.position);
+    sun.position.copy(player.position);
+    sun.position.sub(new THREE.Vector3(-50,-50,-50)); // Position sun above player
+    sun.target.position.copy(player.position);
 
-  const frameH = 1 / 32; 
+    // Update water animation
 
-  scene.traverse(obj => {
-    if(obj.userData.isWater && obj.material?.uniforms){
-      const uni = obj.material?.uniforms;
-      uni.offset1.value.y = (uni.offset1.value.y + dt * 0.3 * frameH) % 1; // Update offset1 (slower) for animation
-      uni.offset2.value.y = (uni.offset2.value.y - dt * 0.4 * frameH) % 1; // Update offset2 (faster) for animation
+    const frameH = 1 / 32; 
 
-      uni.normalOffset.value.x = (uni.normalOffset.value.x + dt * 0.03) % 1; 
-      uni.normalOffset.value.y = (uni.normalOffset.value.y + dt * 0.025) % 1;
+    if (waterPlane){
+
+      scene.traverse(obj => {
+        if(obj.userData.isWater && obj.material?.uniforms){
+          const uni = obj.material?.uniforms;
+          uni.offset1.value.y = (uni.offset1.value.y + dt * 0.3 * frameH) % 1; // Update offset1 (slower) for animation
+          uni.offset2.value.y = (uni.offset2.value.y - dt * 0.4 * frameH) % 1; // Update offset2 (faster) for animation
+
+          uni.normalOffset.value.x = (uni.normalOffset.value.x + dt * 0.03) % 1; 
+          uni.normalOffset.value.y = (uni.normalOffset.value.y + dt * 0.025) % 1;
+        }
+        });
+    }else {
+      scene.traverse(obj => {
+        if (obj.userData.isWater) {
+          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+          mats.forEach(mat => {
+            if (!mat.uniforms) return;          // salta i Lambert
+            const uni = mat.uniforms;
+            uni.offset1.value.y   = (uni.offset1.value.y + dt * 0.03 * frameH) % 1.0;
+            uni.offset2.value.y   = (uni.offset2.value.y - dt * 0.04 * frameH) % 1.0;
+            uni.normalOffset.value.y = (uni.normalOffset.value.y + dt * 0.03) % 1.0;
+            uni.normalOffset.value.y = (uni.normalOffset.value.y + dt * 0.025) % 1.0;
+          });
+        }
+      });
     }
-    });
 
-    const STEP = REF_HALF;                         // scatta ogni “tile”
-    waterReflector.position.x = Math.floor(player.position.x / STEP) * STEP + STEP * 0.5;
-    waterReflector.position.z = Math.floor(player.position.z / STEP) * STEP + STEP * 0.5;
+      const STEP = REF_HALF;                         // scatta ogni “tile”
+      waterReflector.position.x = Math.floor(player.position.x / STEP) * STEP + STEP * 0.5;
+      waterReflector.position.z = Math.floor(player.position.z / STEP) * STEP + STEP * 0.5;
 
-    const activeCam = player.controls.isLocked ? player.camera : orbitCamera;
+      const activeCam = player.controls.isLocked ? player.camera : orbitCamera;
 
-   if (activeCam === orbitCamera){
-    renderer.render(scene, orbitCamera);
-  } else {
-    composer.render();
-   }
+    if (activeCam === orbitCamera){
+      renderer.render(scene, orbitCamera);
+    } else {
+      composer.render();
+    }
 
-    stats.update();
+      stats.update();
 
-    previousTime = currentTime;
+      previousTime = currentTime;
 }
 
 setupUI(world, player, physics, scene, {ssrPass});

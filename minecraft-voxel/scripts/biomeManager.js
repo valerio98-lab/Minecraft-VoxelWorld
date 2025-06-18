@@ -26,6 +26,7 @@ export class BiomeManager {
         let treeDensity = Math.max(0, Math.min(1, ((humidity - 20) / 90)**2)) 
         treeDensity = 0.00007 + treeDensity * (0.08 - 0.00007); // Scale to [0.001, 0.04]
 
+        document.getElementById('temp').innerText = `Temperature: ${temperature}°C, Humidity: ${humidity}%`;
         console.log(`Initial temperature: ${temperature}, Initial humidity: ${humidity}, Initial tree density: ${treeDensity}`);
         return { temperature, humidity, treeDensity};
 

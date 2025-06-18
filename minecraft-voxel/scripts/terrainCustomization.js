@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { BLOCKS } from './block';
 import { makeNoise2D } from 'open-simplex-noise';
-import {waterUniforms, waterVertex, waterFragment} from './waterShader';
+import {waterUniforms, waterVertex, waterFragment} from './shader/waterShaderPlane';
 import { RNG } from './rng';
+import { Parameters } from './params';
 
-const SLICE_GENERATION = 0;
 const SPHERE_GENERATION = 1;
 
 const cloudNoiseCache = new Map();
@@ -13,15 +13,14 @@ export class TerrainCustomization extends THREE.Group {
     constructor(worldChunk) {
         super();
         this.worldChunk = worldChunk; // Reference to the world chunk
-        this.params = worldChunk.params; // Parameters for terrain customization
+        this.params = new Parameters();
     }
 
     generateTrees(x, y, z, biome, seedInt) {
         let rng = new RNG(seedInt); // Create a new RNG instance with the seed
-        const minH = this.worldChunk.params.trees.trunk.minHeight;
-        const maxH = this.worldChunk.params.trees.trunk.maxHeight;
+        const minH = this.params.get_subfield('trees', ['trunk', 'minHeight']);
+        const maxH = this.params.get_subfield('trees', ['trunk', 'maxHeight']);
         const height = Math.max(Math.round(rng.random() * (maxH - minH)) + minH, minH); // Random height between min and max
-
         const block = this.worldChunk.getBlock(x, y, z);
         let block_id = BLOCKS.empty.id; // Default to empty block
         if (biome === 'tundra2forest' && block.id !== BLOCKS.ice.id) {
@@ -48,7 +47,6 @@ export class TerrainCustomization extends THREE.Group {
 
         if (((biome == 'tundra2forest' && block.id === BLOCKS.grass.id)) || (biome === 'forest2desert' && block.id === BLOCKS.grass.id) ||
             (biome === 'forest')) {
-                //console.log(`Generating tree crown at (${x}, ${y + height}, ${z}) in biome ${biome}`);
                 this.TreeCrownGeneration(rng, biome, x, y + height, z); // Generate tree crown
             }
     }
@@ -67,8 +65,8 @@ export class TerrainCustomization extends THREE.Group {
         const leavesID = [blockTreeType[1].id, blockTreeType[2].id];
         const generationType = blockTreeType[3]; 
 
-        const minR = this.worldChunk.params.trees.canopy.minRadius;
-        const maxR = this.worldChunk.params.trees.canopy.maxRadius;
+        const minR = this.params.get_subfield('trees', ['canopy', 'minRadius']);
+        const maxR = this.params.get_subfield('trees', ['canopy', 'maxRadius']);
         const radius = Math.round(rng.random() * (maxR - minR)) + minR // Random radius between min and max
 
         if (generationType === SPHERE_GENERATION) {
@@ -80,7 +78,7 @@ export class TerrainCustomization extends THREE.Group {
     }
 
     SphereLeavesGeneration(x, y, z, radius, leavesID, biome, rng){
-        const density = this.worldChunk.params.trees.canopy.density;
+        const density = this.params.get_subfield('trees', ['canopy', 'density']);
         const block = this.worldChunk.getBlock(x, y, z);
         for (let Cx=-radius; Cx <= radius; Cx++) {
             for (let Cy=-radius; Cy <= radius; Cy++) {
@@ -91,7 +89,7 @@ export class TerrainCustomization extends THREE.Group {
                         const leafY = y + Cy; // Leaves are generated above the trunk
                         const leafZ = z + Cz;
                         const leafBlock = this.worldChunk.getBlock(leafX, leafY, leafZ);
-                        const ratio = this.worldChunk.params.trees.canopy.transparentRatio; // Ratio for transparent leaves
+                        const ratio = this.params.get_subfield('trees', ['canopy', 'transparentRatio']); // Ratio for transparent leaves
                         let leaves = rng.random() < ratio ? leavesID[0] : leavesID[1]; // Randomly select a leaves ID from the array
                         if (!leafBlock || leafBlock.id !== BLOCKS.empty.id) continue; // Only generate leaves on empty blocks
                         if (rng.random() < density) { // Only generate leaves on empty blocks
@@ -112,6 +110,10 @@ export class TerrainCustomization extends THREE.Group {
 
 
     generateClouds(seedInt) {
+        const scale = this.params.get_subfield('clouds', 'scale');
+        const density = this.params.get_subfield('clouds', 'density');
+        const layers = this.params.get_subfield('clouds', 'layers') ?? 2; // Default to 2 layers if not specified
+
         let noise2D = cloudNoiseCache.get(seedInt);
         if (!noise2D) {
             noise2D = makeNoise2D(seedInt);
@@ -121,13 +123,12 @@ export class TerrainCustomization extends THREE.Group {
         for (let x = 0; x < this.worldChunk.size.width; x++) {
             for (let z = 0; z < this.worldChunk.size.width; z++) {
                 const noiseValue = noise2D(
-                    (this.worldChunk.position.x + x) / this.worldChunk.params.clouds.scale, 
-                    (this.worldChunk.position.z + z) / this.worldChunk.params.clouds.scale);
+                    (this.worldChunk.position.x + x) / scale, 
+                    (this.worldChunk.position.z + z) / scale);
                 let normalizedNoiseValue = (noiseValue + 1) / 2; // Normalize to [0, 1]
-                if (normalizedNoiseValue < this.worldChunk.params.clouds.density) {
+                if (normalizedNoiseValue < density) {
                    // Create a cloud block at the position
                  const cloudBlock = BLOCKS.cloud;
-                 const layers = this.worldChunk.params.clouds.layers ?? 2;   // nuovo parametro
                  for (let i = 0; i < layers; i++) {
                      this.worldChunk.setId(
                          x,
@@ -142,9 +143,9 @@ export class TerrainCustomization extends THREE.Group {
     }
 
     generateWater() {
-        // const material = new THREE.MeshLambertMaterial({ color: 0x1E90FF, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
+        const waterOffset = this.params.get_subfield('water', 'waterOffset');
         const uniforms = THREE.UniformsUtils.clone(waterUniforms); // Clone the water uniforms
-        uniforms.tint.value.set(0x3d9bd9); // Set the water tint color        
+        //uniforms.tint.value.set(0x3d9bd9); // Set the water tint color        
         
         const material = new THREE.ShaderMaterial({
             uniforms: uniforms,
@@ -161,7 +162,7 @@ export class TerrainCustomization extends THREE.Group {
         waterMesh.rotateX(-Math.PI / 2); // Rotate the plane to be horizontal
         waterMesh.position.set(
             this.worldChunk.size.width / 2,
-            this.worldChunk.params.terrain.waterOffset+0.4, 
+            waterOffset+0.4, 
             this.worldChunk.size.width / 2
         ); // Center the water plane
 
@@ -184,17 +185,20 @@ export class TerrainCustomization extends THREE.Group {
      * @returns {string} - The biome type.
      */
     pickBlock(x, z, blockList, noise) {
+        const scale = this.params.get_subfield('biomes', 'scale');
+        const variationScale = this.params.get_subfield('biomes', ['variation', 'scale']);
+        const amplitude = this.params.get_subfield('biomes', ['variation', 'amplitude']);
         if (blockList.length === 1) return blockList[0];
         
         let raw = noise(
-            (this.worldChunk.position.x + x) / this.worldChunk.params.biomes.scale, 
-            (this.worldChunk.position.z + z) / this.worldChunk.params.biomes.scale
+            (this.worldChunk.position.x + x) / scale, 
+            (this.worldChunk.position.z + z) / scale
         );
         raw = (raw + 1) * 0.5; // Normalize to [0, 1]
 
-        raw += this.worldChunk.params.biomes.variation.amplitude * noise(
-            (this.worldChunk.position.x + x) / (this.worldChunk.params.biomes.variation.scale), 
-            (this.worldChunk.position.z + z) / (this.worldChunk.params.biomes.variation.scale)
+        raw += amplitude * noise(
+            (this.worldChunk.position.x + x) / (variationScale),
+            (this.worldChunk.position.z + z) / (variationScale)
         );
 
         if(blockList.length === 2) {
