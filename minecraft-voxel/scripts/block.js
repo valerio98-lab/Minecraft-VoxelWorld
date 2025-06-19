@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { waterFragment, waterUniforms, waterVertex } from './shader/waterShaderBlock';
+import { waterFragment, waterUniforms, waterVertex } from './shaders/waterShaderBlock';
+import { LambertFragment, LambertVertex } from './shaders/customLambertShader'; 
 
 const textureLoader = new THREE.TextureLoader();
 
@@ -11,11 +12,31 @@ function loadTexture(url) {
     return texture;
 }
 
+function makeLambertMaterial(texture){
+    const mat =  new THREE.ShaderMaterial({
+        uniforms: {
+            map: { value: texture },
+            lightDir: { value: new THREE.Vector3( 0.3, 0.8, 0.5 ).normalize() },
+            lightColor: { value: new THREE.Color(0xffffff) },
+            ambientColor: { value: new THREE.Color(0x404040) }
+        },
+        vertexShader: LambertVertex,
+        fragmentShader: LambertFragment,
+        transparent: texture.transparent || false, 
+        lights: false,
+        fog: false
+    });
+    mat.defines = {
+        USE_INSTANCING: '', // Enable instancing support
+    };
+    return mat;
+}
+
 const waterCubeMat = new THREE.MeshLambertMaterial({
   color: 0x3d9bd9,
   transparent: true,
   opacity: 0.01,
-  depthWrite: false   // niente z-fighting interno
+  depthWrite: false  
 });
 
 // materiale superficie (shader esistente)
@@ -24,8 +45,8 @@ const waterSurfaceMat = new THREE.ShaderMaterial({
   vertexShader: waterVertex,
   fragmentShader: waterFragment,
   transparent: true,
-  opacity: 0.5, // Opacità della superficie dell'acqua
-  depthWrite: false, // evita conflitti di profondità con il fondo
+  opacity: 0.5, 
+  depthWrite: false, 
   side: THREE.FrontSide
 });
 
@@ -65,12 +86,12 @@ export const BLOCKS = {
         id: 1,
         name: 'Grass',
         material: [
-        new THREE.MeshLambertMaterial({ map: textures.grassSide }), // right
-        new THREE.MeshLambertMaterial({ map: textures.grassSide }), // left
-        new THREE.MeshLambertMaterial({ map: textures.grass }), // top
-        new THREE.MeshLambertMaterial({ map: textures.dirt }), // bottom
-        new THREE.MeshLambertMaterial({ map: textures.grassSide }), // front
-        new THREE.MeshLambertMaterial({ map: textures.grassSide })  // back
+            new THREE.MeshLambertMaterial({ map: textures.grassSide }), // right
+            new THREE.MeshLambertMaterial({ map: textures.grassSide }), // left
+            new THREE.MeshLambertMaterial({ map: textures.grass }), // top
+            new THREE.MeshLambertMaterial({ map: textures.dirt }), // bottom
+            new THREE.MeshLambertMaterial({ map: textures.grassSide }), // front
+            new THREE.MeshLambertMaterial({ map: textures.grassSide })  // back
         ]
     },
     dirt: {

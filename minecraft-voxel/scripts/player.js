@@ -105,7 +105,7 @@ export class Player {
       }
 
       this.RayHelper.position.copy(this.selectedBlock);
-      this.RayHelper.visible = true; // Show the ray helper
+      this.RayHelper.visible = false; // Show the ray helper
       //console.log(this.selectedBlock);
     } else {
       this.selectedBlock = null;
@@ -133,9 +133,9 @@ export class Player {
       const FRICTION_GROUND = 2.0;   // forza con i piedi a terra
       const FRICTION_AIR    =  1.5;   // piccolo freno in aria
       const TURN_BRAKE      = 0.0;   // quanto velocemente cancella il laterale
-
-      const maxSpeed  = inWater ? this.maxSpeed * 0.6 : this.maxSpeed;
-      const accelRate = inWater ?  30.0 : 40.0;     // più lento in acqua
+      console.log('InWater:', inWater, 'OnGround:', onGround);
+      const maxSpeed  = inWater ? this.maxSpeed * 0.8 : this.maxSpeed;
+      const accelRate = inWater ?  20.0 : 40.0;     // più lento in acqua
       const fric = onGround ? FRICTION_GROUND : FRICTION_AIR;
 
 
@@ -273,7 +273,7 @@ export class Player {
         this.velocity.set(0, 0, 0);
         break;
       case 'Space':
-        if (this.onGround) {
+        if (true) {
           this.velocity.y += this.jumpSpeed; // Apply jump speed
         }
     }

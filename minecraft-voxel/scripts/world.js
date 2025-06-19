@@ -16,7 +16,7 @@ export class World extends THREE.Group{
 
     asyncLoading = true; // If true, chunks will be loaded asynchronously
 
-    visibleDistance = 2;
+    visibleDistance = 3;
     WorldChunkSize={width: 32, height: 64}
 
 

@@ -45,10 +45,10 @@ export class Physics {
             player.updatePlayerInputs(this.timestep, player.onGround, inWater); // Update the player's position based on input and velocity
             player.velocity.y -= this.gravity * this.timestep; // Apply gravity to the player's vertical velocity
 
-            if (planeEnabled) {
-                this.applyFlotation(player, waterLevel); 
-                this.applyWaterDrag(player, waterLevel);
-            } 
+
+            this.applyFlotation(player, waterLevel); 
+            this.applyWaterDrag(player, waterLevel);
+
             player.applyMotion(this.timestep); // Apply the player's motion based on the updated velocity
 
             this.detectCollisions(player, world); // Detect collisions with the world
@@ -190,7 +190,7 @@ export class Physics {
         const depthError = (waterLevel+wave) - bottomY+0.5; 
         if (depthError <= 0) return; 
 
-        const k = 40;  // Spring constant for the buoyancy force
+        const k = 30;  // Spring constant for the buoyancy force
         const c = 0.5; // Damping coefficient
 
         const acc = k * depthError - c * player.velocity.y; // Buoyancy force

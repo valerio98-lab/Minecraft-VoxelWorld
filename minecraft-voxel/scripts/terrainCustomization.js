@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { BLOCKS } from './block';
 import { makeNoise2D } from 'open-simplex-noise';
-import {waterUniforms, waterVertex, waterFragment} from './shader/waterShaderPlane';
+import {waterUniforms, waterVertex, waterFragment} from './shaders/waterShaderPlane';
 import { RNG } from './rng';
 import { Parameters } from './params';
 
