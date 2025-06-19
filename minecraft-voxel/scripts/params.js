@@ -4,9 +4,9 @@ export class Parameters {
         this.params = {
             terrain: {
                 seed: 0,
-                scale: 30,           // scala base per l’ottava 0
-                magnitude: 0.1,      // ampiezza complessiva (verrà applicata dopo)
-                offset: 0.1,         // spostamento (così non avremo mai height = 0)
+                scale: 50,           // scala base per l’ottava 0
+                magnitude: 0.2,      // ampiezza complessiva (verrà applicata dopo)
+                offset: 0.2,         // spostamento (così non avremo mai height = 0)
                 //octaves: 4,          // numero di ottave
                 //persistence: 0.9,    // di quanto diminuisce ampiezza da un’ottava alla successiva
                 //lacunarity: 2.0      // di quanto aumenta frequenza da un’ottava alla successiva
@@ -41,8 +41,8 @@ export class Parameters {
                     
                 }, 
                 water: {
-                    waterOffset: 3,
-                    waterPlane: false,
+                    waterOffset: 4,
+                    waterPlane: true,
                 }
 
         }

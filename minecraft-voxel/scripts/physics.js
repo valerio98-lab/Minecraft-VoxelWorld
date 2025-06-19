@@ -27,27 +27,49 @@ export class Physics {
         this.helpers = new THREE.Group();  
         this.helpers.visible = false;  
         this.params = new Parameters();
+        this.waterPlane = this.params.get_subfield('water', 'waterPlane'); // Check if water plane is enabled
         scene.add(this.helpers); 
     }
 
 
     update(dt, player, world){
         this.accumulator += dt;
-        
-        const planeEnabled = !!this.params.get_subfield('water', 'waterPlane'); // 
+    
         // Calcolo qui una sola volta il waterLevel
         const waterLevel  = this.params.get_subfield('water', 'waterOffset') + 0.4;
         player.inWater = player.position.y - (player.height / 2) < waterLevel; 
 
         while (this.accumulator >= this.timestep) {
+            //console.log(player.position);
             const bottomY  = player.position.y - player.height / 2;
             const inWater  = bottomY < waterLevel;
             player.updatePlayerInputs(this.timestep, player.onGround, inWater); // Update the player's position based on input and velocity
             player.velocity.y -= this.gravity * this.timestep; // Apply gravity to the player's vertical velocity
-
-
+            
+            // const { chunkCoords: c,blockInChunk: b} = world.worldToLocalChunk(
+            //     Math.floor(player.position.x), 
+            //     Math.floor(player.position.y - (player.height / 2)), 
+            //     Math.floor(player.position.z)
+            // );
+            // const p = player.position.clone();
+            // const block = world.getBlock(
+            //     Math.floor(p.x), 
+            //     Math.floor(p.y-player.height), 
+            //     Math.floor(p.z)
+            // ); 
+            // if (!this.waterPlane){
+            //     const check = block.id===BLOCKS.water.id // Check if the block is water
+            //     console.log(block.id===BLOCKS.water.id);
+            //     if (check && inWater) {
+            //         this.applyFlotation(player, waterLevel); 
+            //         this.applyWaterDrag(player, waterLevel);
+            //     }
+            // } else {
+            //     this.applyFlotation(player, waterLevel); // Apply flotation force if the player is in water
+            //     this.applyWaterDrag(player, waterLevel); // Apply water drag if the player is in water
+            // }
             this.applyFlotation(player, waterLevel); 
-            this.applyWaterDrag(player, waterLevel);
+            this.applyWaterDrag(player, waterLevel); 
 
             player.applyMotion(this.timestep); // Apply the player's motion based on the updated velocity
 
@@ -186,8 +208,8 @@ export class Physics {
 
     applyFlotation(player, waterLevel) {
         const bottomY = player.position.y - (player.height/2);
-        const wave = 0.2 * Math.sin(performance.now() * 0.001); // ±0.1 blocchi
-        const depthError = (waterLevel+wave) - bottomY+0.5; 
+        const wave = 0.15 * Math.sin(performance.now() * 0.001); // ±0.1 blocchi
+        const depthError = (waterLevel+wave) - bottomY+0.8; 
         if (depthError <= 0) return; 
 
         const k = 30;  // Spring constant for the buoyancy force
@@ -204,7 +226,7 @@ export class Physics {
 
         if (bottomY >= waterLevel) return;
 
-        const dragCoeff = 8.0;
+        const dragCoeff = 10.0;
         const f = 1 - dragCoeff * this.timestep; 
         
         player.velocity.multiplyScalar(f); // smorza X, Y, Z

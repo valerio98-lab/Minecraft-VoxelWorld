@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { WorldChunk } from './worldChunk';
 import { BLOCKS } from './block';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
-import { Tool } from './tool';
+import { Tool } from './animations/tool';
 import { userData } from 'three/src/nodes/TSL.js';
 import { Parameters } from './params';
 
@@ -133,9 +133,8 @@ export class Player {
       const FRICTION_GROUND = 2.0;   // forza con i piedi a terra
       const FRICTION_AIR    =  1.5;   // piccolo freno in aria
       const TURN_BRAKE      = 0.0;   // quanto velocemente cancella il laterale
-      console.log('InWater:', inWater, 'OnGround:', onGround);
-      const maxSpeed  = inWater ? this.maxSpeed * 0.8 : this.maxSpeed;
-      const accelRate = inWater ?  20.0 : 40.0;     // più lento in acqua
+      const maxSpeed  = inWater ? this.maxSpeed : this.maxSpeed;
+      const accelRate = inWater ?  15.0 : 15.0;     // più lento in acqua
       const fric = onGround ? FRICTION_GROUND : FRICTION_AIR;
 
 
@@ -146,7 +145,6 @@ export class Player {
       const wishDir = new THREE.Vector3(this.input.x, 0, this.input.z);
       if (wishDir.lengthSq() > 0) {
         wishDir.normalize();
-        //wishDir.applyEuler(new THREE.Euler(0, this.camera.rotation.y, 0));
       }
       const wishVel = wishDir.clone().multiplyScalar(maxSpeed);
 
@@ -177,7 +175,7 @@ export class Player {
     this.velocity.x += delta.x;
     this.velocity.z += delta.z;
 
-    document.getElementById('info-player-position').innerHTML = this.toString();
+    // document.getElementById('info-player-position').innerHTML = this.toString();
 }
 
   applyMotion(dt) {
@@ -283,11 +281,11 @@ export class Player {
    * Returns player position in string form
    * @returns {string}
    */
-  toString() {
-    let str = '';
-    str += `X: ${this.position.x.toFixed(3)} `;
-    str += `Y: ${this.position.y.toFixed(3)} `;
-    str += `Z: ${this.position.z.toFixed(3)}`;
-    return str;
-  }
+  // toString() {
+  //   let str = '';
+  //   str += `X: ${this.position.x.toFixed(3)} `;
+  //   str += `Y: ${this.position.y.toFixed(3)} `;
+  //   str += `Z: ${this.position.z.toFixed(3)}`;
+  //   return str;
+  // }
 }

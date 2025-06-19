@@ -2,18 +2,21 @@ import * as THREE from 'three';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { World } from './world';
+import { DayNightCycle } from './dayNightCycle';
+
 import { Player } from './player';
 import { Physics } from './physics';
 import { BLOCKS } from './block';
 import { setupUI } from './ui';
 import { ModelLoader } from './modelLoader';
-import {buildSteve, updateWalkCycle} from './steve';
+import {buildSteve, updateWalkCycle} from './animations/steve';
 import { EffectComposer }  from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass }      from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { SSRPass }         from 'three/examples/jsm/postprocessing/SSRPass.js';
 import { ReflectorForSSRPass } from 'three/examples/jsm/objects/ReflectorForSSRPass.js';
 import {OutputPass} from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { Parameters } from './params';
+import { createStartScreen } from './startScreen';
 
 
 /** =====================INITIAL SETUP==============================*/
@@ -46,15 +49,15 @@ scene.fog = new THREE.Fog(0x80a0e0, 50, 100);
 const player = new Player(scene);
 const physics = new Physics(scene);
 const world = new World();
-const sun = new THREE.DirectionalLight();
+//const sun = new THREE.DirectionalLight();
 
 const playerCameraHelper = new THREE.CameraHelper(player.camera);
 scene.add(playerCameraHelper);
 // Add the orbit camera to the scene
 playerCameraHelper.visible = false; // Hide the camera helper by default
 
-world.generate();
-scene.add(world);
+// world.generate();
+// scene.add(world);
 
 /** =====================END INITIAL SETUP==============================*/
 
@@ -100,10 +103,6 @@ composer.addPass(ssrPass);
 const outputPass = new OutputPass();
 composer.addPass(outputPass);
 
-ssrPass.selects = [];
-scene.traverse(obj => {
-  if (obj.userData.isWater) ssrPass.selects.push(obj);
-});
 ssrPass.opacity = 0.75;
 ssrPass.thickness = 0.12; // Thickness of the SSR effect
 ssrPass.enableBlur = true; // Enable blur for SSR effect
@@ -132,28 +131,28 @@ modelLoader.loadModels((models) => {
 
 /** =====================END STEVE BLOCK==============================*/
 
-function setupLighting() {
-  sun.intensity = 1.5;
-  sun.position.set(50, 50, 50);
-  sun.castShadow = true;
+// function setupLighting() {
+//   sun.intensity = 1.5;
+//   sun.position.set(50, 50, 50);
+//   sun.castShadow = true;
 
-  // Set the size of the sun's shadow box
-  sun.shadow.camera.left = -100;
-  sun.shadow.camera.right = 100;
-  sun.shadow.camera.top = 100;
-  sun.shadow.camera.bottom = -100;
-  sun.shadow.camera.near = 0.1;
-  sun.shadow.camera.far = 200;
-  sun.shadow.bias = -0.0004;
-  sun.shadow.normalBias = 0.06;
-  sun.shadow.mapSize = new THREE.Vector2(2048, 2048); // Higher resolution for better shadows
-  scene.add(sun);
-  scene.add(sun.target);
+//   // Set the size of the sun's shadow box
+//   sun.shadow.camera.left = -100;
+//   sun.shadow.camera.right = 100;
+//   sun.shadow.camera.top = 100;
+//   sun.shadow.camera.bottom = -100;
+//   sun.shadow.camera.near = 0.1;
+//   sun.shadow.camera.far = 200;
+//   sun.shadow.bias = -0.0004;
+//   sun.shadow.normalBias = 0.06;
+//   sun.shadow.mapSize = new THREE.Vector2(2048, 2048); // Higher resolution for better shadows
+//   scene.add(sun);
+//   scene.add(sun.target);
 
-  const ambient = new THREE.AmbientLight();
-  ambient.intensity = 0.2;
-  scene.add(ambient);
-}
+//   const ambient = new THREE.AmbientLight();
+//   ambient.intensity = 0.2;
+//   scene.add(ambient);
+// }
 
 
 function onMouseDown(event){
@@ -202,6 +201,7 @@ function animate() {
     player.updateRay(world);
 
     physics.update(dt, player, world);
+    dayNight.update(dt, player.position);
     world.update(player);
     playerCameraHelper.update();
 
@@ -216,15 +216,16 @@ function animate() {
     steve.position.copy(player.position);
     steve.position.y -= player.height;           // piedi
     steve.position.addScaledVector(forwardXZ, -0.3); // arretra busto
-    steve.userData.head.rotation.y = Math.PI; // Set head rotation to match camera yaw
+
 
     // rotazioni
     steve.userData.torso.rotation.y = yaw + Math.PI;
-
     // calcola pitch limitato
     const horizontalLen = Math.sqrt(camDir.x*camDir.x + camDir.z*camDir.z);
     let pitch = Math.atan2(camDir.y, horizontalLen);
     pitch = THREE.MathUtils.clamp(pitch, -Math.PI/4, Math.PI/4);
+    steve.userData.headAnchor.rotation.set(pitch, 0, 0); // testa segue
+
 
     // animazione arti + testa
     const hSpeed = player.worldVelocity.clone().setY(0).length();
@@ -234,9 +235,9 @@ function animate() {
 
     //animazione di Steve degli arti
 
-    sun.position.copy(player.position);
-    sun.position.sub(new THREE.Vector3(-50,-50,-50)); // Position sun above player
-    sun.target.position.copy(player.position);
+    // sun.position.copy(player.position);
+    // sun.position.sub(new THREE.Vector3(-50,-50,-50)); // Position sun above player
+    // sun.target.position.copy(player.position);
 
     // Update water animation
 
@@ -287,6 +288,25 @@ function animate() {
       previousTime = currentTime;
 }
 
+let dayNight;          // istanza globale
+
+function initGame() {
+  // ciò che prima avevi in fondo a main.js prima di chiamare animate():
+  world.generate();
+  scene.add(world);
+
+  player.camera.fov = 75; // Imposta il FOV della camera del giocatore
+  player.camera.updateProjectionMatrix();
+
+  ssrPass.selects = [];
+  scene.traverse(obj => {
+    if (obj.userData.isWater) ssrPass.selects.push(obj);
+  });
+
+  dayNight = new DayNightCycle(scene);   // crea Sole/Luna/Sky
+
+  animate();                             // parte il loop
+}
+
 setupUI(world, player, physics, scene, {ssrPass});
-setupLighting();
-animate();
+createStartScreen({onPlay: initGame}); 

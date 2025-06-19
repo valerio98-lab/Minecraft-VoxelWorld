@@ -228,6 +228,7 @@ export class WorldChunk extends THREE.Group{
      */
 
     removeBlockInChunk(x, y, z) {
+        if (!this.inBounds(x, y-1, z)) return; // Check if the coordinates are within bounds
         const block = this.getBlock(x, y, z);
         if (!block || block.id === BLOCKS.empty.id) return;
 
@@ -259,6 +260,7 @@ export class WorldChunk extends THREE.Group{
             const matrix = new THREE.Matrix4();
             matrix.setPosition(x, y, z);
             mesh.setMatrixAt(instanceId, matrix);
+            if (block.id === BLOCKS.water.id) mesh.userData.isWater = true; // Mark the mesh as water if it's a water block
             mesh.instanceMatrix.needsUpdate = true;
             mesh.computeBoundingSphere();
         }

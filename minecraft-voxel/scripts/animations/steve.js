@@ -89,25 +89,26 @@ export function buildSteve() {
 
   /* torso pivot sotto */
   const torsoGroup = new THREE.Group();
-  torsoGroup.position.y = 0.75; // altezza bacino
+  torsoGroup.position.y = Math.PI/4; // altezza bacino
   const torsoMesh = buildTorso();
-  torsoMesh.position.y = 0.75 / 2; // centrarlo nel gruppo
+  torsoMesh.position.y = (Math.PI/4) / 2; // centrarlo nel gruppo
   torsoGroup.add(torsoMesh);
   steve.add(torsoGroup);
 
   /* testa */
   const head = buildHead();
   const headAnchor = new THREE.Group();
-  head.position.set(0, 0.9, 0);
-  headAnchor.position.copy(head.position); // posiziona testa sopra il torso
+  head.position.set(0, 0.5, 0);
+  head.rotation.set(0, Math.PI, 0); // reset rotation
+  headAnchor.position.copy(head.position); 
   headAnchor.add(head);
-  steve.add(headAnchor);
+  torsoGroup.add(headAnchor);
 
   /* braccia */
   const armL = new THREE.Group();
   armL.position.set(-0.5 / 2 - 0.125, 0.75, 0);
   const armLMesh = buildArm(true);
-  armLMesh.position.y = -0.75 / 2; // abbassa metà lunghezza
+  armLMesh.position.y = -0.75 / 2; 
   armL.add(armLMesh);
   torsoGroup.add(armL);
 
