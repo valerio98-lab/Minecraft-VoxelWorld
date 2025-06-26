@@ -17,8 +17,6 @@ function makeLambertMaterial(texture){
         uniforms: {
             map: { value: texture },
             lightDir: { value: new THREE.Vector3( 0.3, 0.8, 0.5 ).normalize() },
-            lightColor: { value: new THREE.Color(0xffffff) },
-            ambientColor: { value: new THREE.Color(0x404040) }
         },
         vertexShader: LambertVertex,
         fragmentShader: LambertFragment,
@@ -26,9 +24,7 @@ function makeLambertMaterial(texture){
         lights: false,
         fog: false
     });
-    mat.defines = {
-        USE_INSTANCING: '', // Enable instancing support
-    };
+
     return mat;
 }
 

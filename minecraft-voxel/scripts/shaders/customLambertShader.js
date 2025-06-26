@@ -8,19 +8,13 @@ export const LambertVertex = /* glsl */`
 
     void main() {
 
-        #ifdef USE_INSTANCING
         mat3 m3 = mat3( instanceMatrix );
-            vNormal = normalize( normalMatrix * m3 * normal );
-        #else
-            vNormal = normalize(normalMatrix*normal );
-        #endif
+        vNormal = normalize( normalMatrix * m3 * normal );
 
         vUv = uv;
         vec3 pos = position;
 
-        #ifdef USE_INSTANCING
-            pos = (instanceMatrix*vec4(pos, 1.0)).xyz;
-        #endif
+        pos = (instanceMatrix*vec4(pos, 1.0)).xyz;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
     }
 

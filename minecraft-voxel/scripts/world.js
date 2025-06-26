@@ -256,7 +256,7 @@ export class World extends THREE.Group{
                 [0, 1, 0],   // up
                 [0, -1, 0],  // down
                 [1, 0, 0],   // left
-                [-1, 0, 0],  // right
+                [-1, 0, 0],  // right 
                 [0, 0, 1],   // forward
                 [0, 0, -1]   // back
         ];

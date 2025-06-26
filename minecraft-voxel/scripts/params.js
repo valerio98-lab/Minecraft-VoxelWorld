@@ -41,7 +41,7 @@ export class Parameters {
                     
                 }, 
                 water: {
-                    waterOffset: 4,
+                    waterOffset: 4, 
                     waterPlane: true,
                 }
 
