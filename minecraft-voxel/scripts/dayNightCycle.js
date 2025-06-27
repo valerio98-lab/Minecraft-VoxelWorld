@@ -2,12 +2,11 @@
 import * as THREE from 'three';
 
 export class DayNightCycle {
-  constructor(scene, {
+  constructor(scene,
     radius = 65,       
     dayLength = 240,       
     tiltDeg = 23.4,      
-    sunTex = 'textures/sun.png',
-  } = {}) {
+    sunTex = 'textures/sun.png') {
 
     this.scene = scene;
     this.dayLength = dayLength;
@@ -25,7 +24,7 @@ export class DayNightCycle {
     this.sunLight.position.set(40, 15, radius);
     this.sunLight.castShadow = true;
     this.sunLight.shadow.mapSize.set(2048, 2048);
-    scene.add(this.sunLight.target);          // obbligatorio
+    scene.add(this.sunLight.target);        
     this.pivot.add(this.sunLight);
 
     this.sunSprite = new THREE.Sprite(
@@ -49,16 +48,15 @@ export class DayNightCycle {
     this.moonSprite = new THREE.Sprite(
       new THREE.SpriteMaterial({ map: moonTex, depthWrite: false })
     );
-    this.moonSprite.scale.set(5, 5, 1); // dimensione sprite
+    this.moonSprite.scale.set(5, 5, 1); 
     this.moonSprite.position.copy(this.moonLight.position);
     this.pivot.add(this.moonSprite);
 
-    /* --- luce ambiente per riempire ombre troppo nere --- */
     this.ambient = new THREE.AmbientLight(0xffffff, 0.2);
     scene.add(this.ambient);
   }
 
-  // chiami ogni frame
+
   update(dt, playerPos = null) {
 
     const elapsed = this.clock.getElapsedTime();
@@ -70,26 +68,25 @@ export class DayNightCycle {
       this.moonLight.target.position.copy(playerPos);
     }
 
-    //rotazione continua
-    const angle = (this.clock.getElapsedTime() / this.dayLength) * Math.PI * 2;
+  
+    const angle = (elapsed / this.dayLength) * 2 * Math.PI;
     this.pivot.rotation.x = -angle;
 
     // visibilità / intensità 
     const t = (angle % (Math.PI * 2)) / (Math.PI * 2); 
     const isDay = t < 0.5;
-    this.sunLight.intensity  = isDay ? 1.0 : 0.0;
+    this.sunLight.intensity = isDay ? 1.0 : 0.0;
     this.moonLight.intensity = isDay ? 0.0 : 0.3;
-    this.sunSprite.visible   = isDay;
-    this.moonSprite.visible  = !isDay;
+    this.sunSprite.visible = isDay;
+    this.moonSprite.visible = !isDay;
 
     const dayIndex = Math.floor(elapsed / this.dayLength);
-    if (dayIndex !== this._lastDayIndex && this.moonSprite.material.map){
-        this._lastDayIndex = dayIndex;
-        this._moonPhase    = (this._moonPhase + 1) & 7;  // bit-and = %8
-        this.moonSprite.material.map.offset.x = this._moonPhase / 8;
+    if (dayIndex !== this.lastDayIndex){
+        this.lastDayIndex = dayIndex;
+        this.moonPhase = ((this.moonPhase + 1) % 8)/ 8; 
+        this.moonSprite.material.map.offset.x = this.moonPhase;
   }
 
-    /* colore del cielo */
     const lum = isDay ? 0.25 + 0.35 * Math.sin(Math.PI * t * 2) : 0.05;
     this.scene.background = new THREE.Color().setHSL(0.6, 1, lum);
   }

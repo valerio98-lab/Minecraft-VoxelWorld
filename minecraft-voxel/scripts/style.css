@@ -22,6 +22,16 @@ body {
   color: white;
   margin: 8px;
 }
+/* andrebbe posizionato in alto a destra */
+#day-time { 
+  position: absolute;
+  font-family: sans-serif; 
+  font-size: 24px;
+  right: 0;
+  top: 0;
+  color: white;
+  margin: 8px;
+}
 
 #toolbar-container {
   position: fixed;

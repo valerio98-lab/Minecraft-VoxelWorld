@@ -39,8 +39,6 @@ export class AABB{
 
     BroadPhase(player, world) {
         // Implement broad phase collision detection logic
-        // This could be a simple bounding box check or spatial partitioning
-        //this.removeCollisionBoxes(); // Clear previous collision boxes
 
         const possibleCollisions = [];
 
@@ -88,12 +86,11 @@ export class AABB{
             // Closest point on the block w.r.t the player
             const p = player.position;
             const closestPoint = {
-                x: this.clamp(p.x, block.x - player.radius, block.x + player.radius),
-                y: this.clamp(p.y - player.height/2, block.y - player.radius, block.y + player.radius),
-                z: this.clamp(p.z, block.z - player.radius, block.z + player.radius)
+                x: this.clamp(p.x, (block.x - player.radius), (block.x + player.radius)),
+                y: this.clamp((p.y - player.height/2), (block.y - player.radius), (block.y + player.radius)),
+                z: this.clamp(p.z, (block.z - player.radius), (block.z + player.radius))
             };
 
-            //console.log("Closest point for block at:", block, "is:", closestPoint);
 
             // Check if the player is colliding with the block
             const collision = this.InCollisionWithBlock(player, closestPoint);

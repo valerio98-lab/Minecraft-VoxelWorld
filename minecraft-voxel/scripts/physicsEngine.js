@@ -90,14 +90,14 @@ export class PhysicsEngine {
 
     applyFlotation(player, waterLevel) {
         const bottomY = player.position.y - (player.height/2);
-        const wave = 0.15 * Math.sin(performance.now() * 0.001); // ±0.1 blocchi
+        const wave = 0.15 * Math.sin(performance.now() * 0.001);
         const depthError = (waterLevel+wave) - bottomY+0.8; 
         if (depthError <= 0) return; 
 
-        const k = 30;  // Spring constant for the buoyancy force
+        const k = 30;  
         const c = 0.5; // Damping coefficient
 
-        const acc = k * depthError - c * player.velocity.y; // Buoyancy force
+        const acc = k * depthError - c * player.velocity.y; //Hooke - Damping force
 
         player.velocity.y += acc * this.timestep; // Apply buoyancy force to the player's vertical velocity
 
@@ -108,7 +108,7 @@ export class PhysicsEngine {
 
         if (bottomY >= waterLevel) return;
 
-        const dragCoeff = 10.0;
+        const dragCoeff = 8.0;
         const f = 1 - dragCoeff * this.timestep; 
         
         player.velocity.multiplyScalar(f); // smorza X, Y, Z
