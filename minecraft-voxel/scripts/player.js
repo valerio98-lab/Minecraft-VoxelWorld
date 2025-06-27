@@ -1,9 +1,7 @@
 import * as THREE from 'three';
-import { WorldChunk } from './worldChunk';
 import { BLOCKS } from './block';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import { Tool } from './animations/tool';
-import { userData } from 'three/src/nodes/TSL.js';
 import { Parameters } from './params';
 
 const CENTER_SCREEN = new THREE.Vector2();
@@ -83,7 +81,7 @@ export class Player {
   updateRaycaster(world) {
     this.raycaster.setFromCamera(CENTER_SCREEN, this.camera);
     const intersects = this.raycaster.intersectObjects(world.children, true);
-    
+    this.RayHelper.visible = true; // Show the ray helper
 
     if (intersects.length > 0) {
       const firstIntersect = intersects[0];
@@ -105,11 +103,9 @@ export class Player {
       }
 
       this.RayHelper.position.copy(this.selectedBlock);
-      this.RayHelper.visible = false; // Show the ray helper
-      //console.log(this.selectedBlock);
+
     } else {
       this.selectedBlock = null;
-      this.RayHelper.visible = false; // Hide the ray helper if no intersection
     }
   } 
 
@@ -123,60 +119,6 @@ export class Player {
     this.velocity.add(v); // Add the velocity to the player's velocity
   }
 
-
-
-  /**
-   * @param {Number} dt 
-   */
-  updatePlayerInputs(dt, onGround, inWater) {
-    if (!this.controls.isLocked) return; 
-      const FRICTION_GROUND = 2.0;   // forza con i piedi a terra
-      const FRICTION_AIR    =  1.5;   // piccolo freno in aria
-      const TURN_BRAKE      = 0.0;   // quanto velocemente cancella il laterale
-      const maxSpeed  = inWater ? this.maxSpeed : this.maxSpeed;
-      const accelRate = inWater ?  15.0 : 15.0;     // più lento in acqua
-      const fric = onGround ? FRICTION_GROUND : FRICTION_AIR;
-
-
-      const f = Math.max(0, 1 - fric * dt);
-      this.velocity.x *= f;
-      this.velocity.z *= f;
-
-      const wishDir = new THREE.Vector3(this.input.x, 0, this.input.z);
-      if (wishDir.lengthSq() > 0) {
-        wishDir.normalize();
-      }
-      const wishVel = wishDir.clone().multiplyScalar(maxSpeed);
-
-
-      const horizVel = new THREE.Vector3(this.velocity.x, 0, this.velocity.z);
-      if (wishVel.lengthSq() > 0) {                          // evito /0
-        const wishDirN = wishVel.clone().normalize();        // unit
-        const lateral  = horizVel.clone().sub(
-            wishDirN.clone().multiplyScalar(horizVel.dot(wishDirN))
-        );
-        const latMag = lateral.length();
-
-      if (latMag > 0) {
-        const drop   = Math.min(latMag, TURN_BRAKE * dt);
-        lateral.setLength(latMag - drop);
-        const newVel = wishDirN.multiplyScalar(horizVel.dot(wishDirN)).add(lateral);
-        this.velocity.x = newVel.x;
-        this.velocity.z = newVel.z;
-      }
-    }
-      
-    const delta     = wishVel.clone().sub(horizVel);     
-    const accelStep = accelRate * dt;
-
-    if (delta.lengthSq() > accelStep * accelStep) {
-      delta.setLength(accelStep);
-    }
-    this.velocity.x += delta.x;
-    this.velocity.z += delta.z;
-
-    // document.getElementById('info-player-position').innerHTML = this.toString();
-}
 
   applyMotion(dt) {
       this.controls.moveRight(this.velocity.x * dt);

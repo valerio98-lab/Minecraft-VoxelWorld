@@ -3,10 +3,10 @@ import * as THREE from 'three';
 
 export class DayNightCycle {
   constructor(scene, {
-    radius      = 65,       
-    dayLength   = 240,       
-    tiltDeg     = 23.4,      
-    sunTex      = 'textures/sun.png',
+    radius = 65,       
+    dayLength = 240,       
+    tiltDeg = 23.4,      
+    sunTex = 'textures/sun.png',
   } = {}) {
 
     this.scene = scene;
@@ -90,9 +90,7 @@ export class DayNightCycle {
   }
 
     /* colore del cielo */
-    const lum = isDay
-      ? 0.25 + 0.35 * Math.sin(Math.PI * t * 2)   // alba/mezzogiorno/tramonto
-      : 0.05;
+    const lum = isDay ? 0.25 + 0.35 * Math.sin(Math.PI * t * 2) : 0.05;
     this.scene.background = new THREE.Color().setHSL(0.6, 1, lum);
   }
 }

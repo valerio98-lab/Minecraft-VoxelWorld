@@ -3,9 +3,10 @@ import Stats from 'three/examples/jsm/libs/stats.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { World } from './world';
 import { DayNightCycle } from './dayNightCycle';
+import { AABB } from './AABB';
 
 import { Player } from './player';
-import { Physics } from './physics';
+import { PhysicsEngine } from './physicsEngine';
 import { BLOCKS } from './block';
 import { setupUI } from './ui';
 import { ModelLoader } from './modelLoader';
@@ -20,23 +21,23 @@ import { createStartScreen } from './startScreen';
 
 
 const params = new Parameters();
-const waterPlane      = params.get_subfield('water', 'waterPlane');
-const renderer        = new THREE.WebGLRenderer();
-const scene           = new THREE.Scene();
-const world           = new World();
-const player          = new Player(scene);
-const physics         = new Physics(scene);
-let   dayNight        = null;   // created in initGame()
-let   composer        = null;   // set in setupPostFX()
-const stats           = new Stats();
+const waterPlane = params.get_subfield('water', 'waterPlane');
+const renderer = new THREE.WebGLRenderer();
+const scene = new THREE.Scene();
+const world = new World();
+const player = new Player(scene);
+const physics = new PhysicsEngine(scene);
+let dayNight = null; // created in initGame()
+let composer = null;   // set in setupPostFX()
+const stats = new Stats();
 document.body.appendChild(stats.dom);
 
 const WATER_LEVEL = world.params.terrain.waterOffset + 0.4;
-const REF_HALF    = world.WorldChunkSize.width * (world.visibleDistance + 1);
+const REF_HALF = world.WorldChunkSize.width * (world.visibleDistance + 1);
 
 // Cameras
-const orbitCamera  = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const playerCam    = player.camera; // convenience alias
+const orbitCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const playerCam = player.camera; // convenience alias
 
 
 const playerCameraHelper = new THREE.CameraHelper(playerCam);
@@ -45,9 +46,10 @@ const playerCameraHelper = new THREE.CameraHelper(playerCam);
 function setupRenderer() {
   console.warn = () => {};               
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setClearColor(0x80a0e0); // sky color
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
 }
 
@@ -76,8 +78,8 @@ function onWindowResize() {
   composer.setSize(w, h);
   setupSSR.ssrPass.setSize(w, h);
 
-  orbitCamera.aspect   = w / h; orbitCamera.updateProjectionMatrix();
-  playerCam.aspect     = w / h; playerCam.updateProjectionMatrix();
+  orbitCamera.aspect = w / h; orbitCamera.updateProjectionMatrix();
+  playerCam.aspect = w / h; playerCam.updateProjectionMatrix();
 }
 
 function onMouseDown(e) {
@@ -111,20 +113,20 @@ function setupSSR() {
   composer.addPass(new RenderPass(scene, playerCam));
 
   const ssrPass = new SSRPass({ renderer, scene, camera: playerCam, width: window.innerWidth, height: window.innerHeight });
-  ssrPass.reflector    = waterReflector;
-  ssrPass.opacity      = 0.75;
-  ssrPass.thickness    = 0.12;
-  ssrPass.enableBlur   = true;
-  ssrPass.blurRadius   = 0.5;
-  ssrPass.blurSigma    = 4.0;
-  ssrPass.maxDistance  = 60;
+  ssrPass.reflector = waterReflector;
+  ssrPass.opacity = 0.75;
+  ssrPass.thickness = 0.12;
+  ssrPass.enableBlur = true;
+  ssrPass.blurRadius = 0.5;
+  ssrPass.blurSigma = 4.0;
+  ssrPass.maxDistance = 60;
   composer.addPass(ssrPass);
 
   composer.addPass(new OutputPass());
 
   // store for access in animate()
   setupSSR.waterReflector = waterReflector;
-  setupSSR.ssrPass        = ssrPass;
+  setupSSR.ssrPass = ssrPass;
 }
 
 function setupSteve() {
@@ -162,8 +164,8 @@ function updateWater(dt) {
           mats.forEach(mat => {
             if (!mat.uniforms) return;          // salta i Lambert
             const uni = mat.uniforms;
-            uni.offset1.value.y   = (uni.offset1.value.y + dt * 0.03 * frameH) % 1.0;
-            uni.offset2.value.y   = (uni.offset2.value.y - dt * 0.04 * frameH) % 1.0;
+            uni.offset1.value.y = (uni.offset1.value.y + dt * 0.03 * frameH) % 1.0;
+            uni.offset2.value.y = (uni.offset2.value.y - dt * 0.04 * frameH) % 1.0;
             uni.normalOffset.value.y = (uni.normalOffset.value.y + dt * 0.03) % 1.0;
             uni.normalOffset.value.y = (uni.normalOffset.value.y + dt * 0.025) % 1.0;
           });
@@ -198,8 +200,8 @@ function updateSteve(dt) {
 
 let previousTime = performance.now();
 function animate() {
-  const now  = performance.now();
-  const dt   = (now - previousTime) / 1000;
+  const now = performance.now();
+  const dt = (now - previousTime) / 1000;
   requestAnimationFrame(animate);
 
   player.updateRay(world);

@@ -1,7 +1,7 @@
+
 import * as THREE from 'three';
 import { BLOCKS } from './block';
-import { Parameters} from './params';
-
+import { Parameters } from './params';
 
 const collisionBoxMaterial = new THREE.MeshBasicMaterial({
     color: 0xff0000,
@@ -16,67 +16,13 @@ const contactMaterial = new THREE.MeshBasicMaterial({
     wireframe: true,
 });
 
-
-export class Physics {
-    gravity = 32;
-    simulationRate = 250;
-    timestep = 1 / this.simulationRate; // Time step for the physics simulation, in seconds
-    accumulator = 0;
-
-    constructor(scene, player) {
-        this.helpers = new THREE.Group();  
-        this.helpers.visible = false;  
-        this.params = new Parameters();
-        this.waterPlane = this.params.get_subfield('water', 'waterPlane'); // Check if water plane is enabled
-        scene.add(this.helpers); 
-    }
-
-
-    update(dt, player, world){
-        this.accumulator += dt;
+export class AABB{
     
-        // Calcolo qui una sola volta il waterLevel
-        const waterLevel  = this.params.get_subfield('water', 'waterOffset') + 0.4;
-        player.inWater = player.position.y - (player.height / 2) < waterLevel; 
-
-        while (this.accumulator >= this.timestep) {
-            //console.log(player.position);
-            const bottomY  = player.position.y - player.height / 2;
-            const inWater  = bottomY < waterLevel;
-            player.updatePlayerInputs(this.timestep, player.onGround, inWater); // Update the player's position based on input and velocity
-            player.velocity.y -= this.gravity * this.timestep; // Apply gravity to the player's vertical velocity
-            
-            // const { chunkCoords: c,blockInChunk: b} = world.worldToLocalChunk(
-            //     Math.floor(player.position.x), 
-            //     Math.floor(player.position.y - (player.height / 2)), 
-            //     Math.floor(player.position.z)
-            // );
-            // const p = player.position.clone();
-            // const block = world.getBlock(
-            //     Math.floor(p.x), 
-            //     Math.floor(p.y-player.height), 
-            //     Math.floor(p.z)
-            // ); 
-            // if (!this.waterPlane){
-            //     const check = block.id===BLOCKS.water.id // Check if the block is water
-            //     console.log(block.id===BLOCKS.water.id);
-            //     if (check && inWater) {
-            //         this.applyFlotation(player, waterLevel); 
-            //         this.applyWaterDrag(player, waterLevel);
-            //     }
-            // } else {
-            //     this.applyFlotation(player, waterLevel); // Apply flotation force if the player is in water
-            //     this.applyWaterDrag(player, waterLevel); // Apply water drag if the player is in water
-            // }
-            this.applyFlotation(player, waterLevel); 
-            this.applyWaterDrag(player, waterLevel); 
-
-            player.applyMotion(this.timestep); // Apply the player's motion based on the updated velocity
-
-            this.detectCollisions(player, world); // Detect collisions with the world
-            this.accumulator -= this.timestep; // Reduce the accumulator by the time step
-        }
-        player.updateBoundingCylinder(); // Update the player's bounding cylinder position
+    constructor(scene) {
+        this.params = new Parameters();
+        this.helpers = new THREE.Group();
+        this.helpers.visible = false;  
+        scene.add(this.helpers); // Add the helpers group to the scene
     }
 
     detectCollisions(player, world){
@@ -191,11 +137,9 @@ export class Physics {
             } ); // Sort by overlap to resolve the most significant collisions first
         
         for (const collision of collisions) {
-            //console.log("Resolving collision with player at:", player.position, "And Collision closest:", collision.closestPoint);
             const col = this.InCollisionWithBlock(player, collision.closestPoint);
             if (!col.inCollision) continue; 
 
-            //console.log("Resolving collision with block at:", collision.block, "Collision details:", collision);
             let normalPosition = collision.normal.clone().multiplyScalar(collision.overlap);
             player.position.add(normalPosition); // Adjust player's position based on the collision normal and overlap
         
@@ -206,40 +150,12 @@ export class Physics {
         }
     }
 
-    applyFlotation(player, waterLevel) {
-        const bottomY = player.position.y - (player.height/2);
-        const wave = 0.15 * Math.sin(performance.now() * 0.001); // ±0.1 blocchi
-        const depthError = (waterLevel+wave) - bottomY+0.8; 
-        if (depthError <= 0) return; 
-
-        const k = 30;  // Spring constant for the buoyancy force
-        const c = 0.5; // Damping coefficient
-
-        const acc = k * depthError - c * player.velocity.y; // Buoyancy force
-
-        player.velocity.y += acc * this.timestep; // Apply buoyancy force to the player's vertical velocity
-
-    }
-
-    applyWaterDrag(player, waterLevel) {
-        const bottomY    = player.position.y - player.height / 2;
-
-        if (bottomY >= waterLevel) return;
-
-        const dragCoeff = 10.0;
-        const f = 1 - dragCoeff * this.timestep; 
-        
-        player.velocity.multiplyScalar(f); // smorza X, Y, Z
-    }
-
-
 
     clamp(player_point, boxMin, boxMax) {
         return Math.max(boxMin, Math.min(player_point, boxMax));
     }
 
-
-    /** * Checks if the closest points in the bounding cylinder of the player are within the block's bounds
+        /** * Checks if the closest points in the bounding cylinder of the player are within the block's bounds
      * @param {Object} player - The player object with position, radius, and height properties
      * @param {Object} closestPoints - The closest points on the block to the player
      * @returns {boolean} - Returns true if a collision is detected, false otherwise
@@ -275,7 +191,5 @@ export class Physics {
         contactPoint.position.copy(position);
         this.helpers.add(contactPoint);
     }
-
-
-
+    
 }

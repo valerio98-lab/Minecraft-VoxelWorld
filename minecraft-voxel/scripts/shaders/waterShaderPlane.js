@@ -68,7 +68,7 @@ export const waterFragment = /* glsl */`
 
     // normal map perturbation
     vec2 uvN = vUv * 8.0 + normalOffset;
-    vec3 nTex = texture2D(normalTex, uvN).xyz;
+    vec3 nTex = texture2D(normalTex, uvN).xyz * 2.0 - 1.0; // normal map [-1,1]
     nTex.g = -nTex.g;
     vec3 N = normalize(mix(vec3(0,0,1), nTex, normalMix)); 
 
