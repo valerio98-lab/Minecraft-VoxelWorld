@@ -114,7 +114,6 @@ export class WorldChunk extends THREE.Group{
                 for (let y = 0; y < this.size.height; y++) {
                     if (y=== height) {
                         const blockId = this.TerrainCustomization.pickBlock(x, z, this.blockType, noise2D); // Set the block ID to the generated block type
-                        
                         this.setId(x, y, z, blockId); // Set the block ID at the current position
 
                         if (this.rng.random() < this.treeDensity && y > waterLevel) { // Check if a tree should be generated based on the tree density
@@ -211,8 +210,6 @@ export class WorldChunk extends THREE.Group{
                     }
                     else {
                         this.setInstanceId(x, y, z, null); // If the block is hidden, set instance ID to null
-                        // mesh.castShadow = false; // Disable shadow casting for hidden blocks
-                        // mesh.receiveShadow = false; // Disable shadow receiving for hidden blocks
                     }
                 }
             }

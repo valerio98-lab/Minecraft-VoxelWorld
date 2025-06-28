@@ -17,7 +17,6 @@ import { SSRPass } from 'three/examples/jsm/postprocessing/SSRPass.js';
 import { ReflectorForSSRPass } from 'three/examples/jsm/objects/ReflectorForSSRPass.js';
 import {OutputPass} from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { Parameters } from './params';
-import { createStartScreen } from './startScreen';
 
 
 const params = new Parameters();
@@ -27,13 +26,13 @@ const scene = new THREE.Scene();
 const world = new World();
 const player = new Player(scene);
 const physics = new PhysicsEngine(scene);
-let dayNight = null; // created in initGame()
-let composer = null;   // set in setupPostFX()
+let dayNight = null; 
+let composer = null; 
 const stats = new Stats();
 document.body.appendChild(stats.dom);
 
 const WATER_LEVEL = world.params.terrain.waterOffset + 0.4;
-const REF_HALF = world.WorldChunkSize.width * (world.visibleDistance + 1);
+const REF_HALF = world.WorldChunkSize.width * world.visibleDistance;
 
 // Cameras
 const orbitCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -54,7 +53,7 @@ function setupRenderer() {
 }
 
 function setupScene() {
-  scene.fog = new THREE.Fog(0x80a0e0, 50, 100);
+  //scene.fog = new THREE.Fog(0x80a0e0, 50, 100);
   scene.add(world);
 }
 
@@ -247,7 +246,10 @@ function boot() {
   setupEvents();
 
   setupUI(world, player, physics, scene, { ssrPass: setupSSR.ssrPass });
-  createStartScreen({ onPlay: initGame });
+  document.getElementById('playBtn').addEventListener('click', () => {
+    document.getElementById('startScreen').remove();
+    initGame();
+  });
 }
 
 boot();

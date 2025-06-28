@@ -5,11 +5,8 @@ export class Tool extends THREE.Group {
     animate = false;
     amplitude = 0.5;
     duration = 300;
-    //start time of the animation
     animationStart = 0;
-    //Speed of the animation
-    animationSpeed = 0.025; 
-    //Current animation active
+    animationSpeed = 0.025;
     animation = undefined;
     //Mesh of the tool
     toolMesh = undefined;

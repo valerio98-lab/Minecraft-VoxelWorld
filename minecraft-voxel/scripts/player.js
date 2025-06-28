@@ -81,7 +81,7 @@ export class Player {
   updateRaycaster(world) {
     this.raycaster.setFromCamera(CENTER_SCREEN, this.camera);
     const intersects = this.raycaster.intersectObjects(world.children, true);
-    this.RayHelper.visible = true; // Show the ray helper
+    this.RayHelper.visible = false; // Show the ray helper
 
     if (intersects.length > 0) {
       const firstIntersect = intersects[0];
@@ -214,7 +214,7 @@ export class Player {
         break;
       case 'Space':
         if (true) {
-          this.velocity.y += this.jumpSpeed; // Apply jump speed
+          this.velocity.y = this.jumpSpeed; // Apply jump speed
         }
     }
   }

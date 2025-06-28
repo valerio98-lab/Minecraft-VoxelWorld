@@ -7,7 +7,7 @@ export class BiomeManager {
    * @param {number} seed   
    * @param {number} scale  
    */
-  constructor(seed, scale = 256) {
+  constructor(seed, scale = 1024) {
     // due rumori diversi ottenuti con seed “rotato”
     this.noiseTemp = makeNoise2D(seed);
     this.noiseHum  = makeNoise2D(seed ^ 0xA5A5A5);

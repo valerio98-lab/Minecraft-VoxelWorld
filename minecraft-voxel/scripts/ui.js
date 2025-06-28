@@ -8,8 +8,8 @@ export function setupUI(world, player, physics, scene, extras={}) {
     const {ssrPass} = extras;
 
     const sceneFolder = gui.addFolder('Renderer');
-    sceneFolder.add(scene.fog, 'near', 0, 100, 1).name('Fog Near'); 
-    sceneFolder.add(scene.fog, 'far', 0, 200, 1).name('Fog Far');
+    // sceneFolder.add(scene.fog, 'near', 0, 100, 1).name('Fog Near'); 
+    // sceneFolder.add(scene.fog, 'far', 0, 200, 1).name('Fog Far');
 
     if(ssrPass) {
         sceneFolder.add(ssrPass, 'enabled').name('SSR Enabled');
