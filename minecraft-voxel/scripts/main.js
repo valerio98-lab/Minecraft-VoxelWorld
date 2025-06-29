@@ -32,7 +32,7 @@ const stats = new Stats();
 document.body.appendChild(stats.dom);
 
 const WATER_LEVEL = world.params.terrain.waterOffset + 0.4;
-const REF_HALF = world.WorldChunkSize.width * world.visibleDistance;
+const REF_HALF = world.WorldChunkSize.width * (world.visibleDistance+1);
 
 // Cameras
 const orbitCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -53,7 +53,7 @@ function setupRenderer() {
 }
 
 function setupScene() {
-  //scene.fog = new THREE.Fog(0x80a0e0, 50, 100);
+  scene.fog = new THREE.Fog(0x80a0e0, 50, 100);
   scene.add(world);
 }
 

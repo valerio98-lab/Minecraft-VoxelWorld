@@ -71,15 +71,12 @@ export class TerrainCustomization extends THREE.Group {
 
         if (generationType === SPHERE_GENERATION) {
             this.SphereLeavesGeneration(x, y, z, radius, leavesID, biome, rng); // Generate leaves using slice generation
-        } else if (generationType === SPHERE_GENERATION) {
-            this.SphereLeavesGeneration(x, y, z, radius, leavesID, biome, rng); // Generate leaves using sphere generation
         }
         
     }
 
     SphereLeavesGeneration(x, y, z, radius, leavesID, biome, rng){
         const density = this.params.get_subfield('trees', ['canopy', 'density']);
-        const block = this.worldChunk.getBlock(x, y, z);
         for (let Cx=-radius; Cx <= radius; Cx++) {
             for (let Cy=-radius; Cy <= radius; Cy++) {
                 for (let Cz=-radius; Cz <= radius; Cz++) {
