@@ -45,7 +45,7 @@ const playerCameraHelper = new THREE.CameraHelper(playerCam);
 function setupRenderer() {
   console.warn = () => {};               
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(window.devicePixelRatio);
+  // renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setClearColor(0x80a0e0); // sky color
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -215,9 +215,9 @@ function animate() {
 
   const STEP = REF_HALF;
   setupSSR.waterReflector.position.set(
-    Math.floor(player.position.x / STEP) * STEP + STEP * 0.5,
+    Math.floor(player.position.x / STEP) * STEP + (STEP * 0.5),
     WATER_LEVEL,
-    Math.floor(player.position.z / STEP) * STEP + STEP * 0.5
+    Math.floor(player.position.z / STEP) * STEP + (STEP * 0.5)
   );
 
   const activeCam = player.controls.isLocked ? playerCam : orbitCamera;

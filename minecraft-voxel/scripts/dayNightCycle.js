@@ -78,7 +78,7 @@ export class DayNightCycle {
         this.lastDayIndex = dayIndex;
         // this.moonPhase = ((this.moonPhase) % 8)/ 8; 
         // this.moonMaterial.material.map.offset.x = this.moonPhase;
-        this.moonMaterial.material.map.needsUpdate = true; // Ensure the texture updates
+        //this.moonMaterial.material.map.needsUpdate = true; // Ensure the texture updates
   }
 
     const lum = isDay ? 0.25 + 0.35 * Math.sin(Math.PI * t * 2) : 0.05;

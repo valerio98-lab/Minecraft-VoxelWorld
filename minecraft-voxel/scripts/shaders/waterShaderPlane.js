@@ -22,7 +22,7 @@ export const waterUniforms = {
     normalTex:   { value: normalMap },
     normalOffset:{ value: new THREE.Vector2(0,0) },
     normalMix: { value: 0.90 }, // quanto peso dare alla normalMap
-    reflectScale: { value: 0.1 }, // quanto intensificare il Fres
+    reflectScale: { value: 0.8 }, // quanto intensificare il Fres
     reflectIntensity: { value: 0.3 }, // + o - brillantezza del colore riflesso
 
 };
@@ -69,7 +69,7 @@ export const waterFragment = /* glsl */`
     // normal map perturbation
     vec2 uvN = vUv * 8.0 + normalOffset;
     vec3 nTex = texture2D(normalTex, uvN).xyz * 2.0 - 1.0; // normal map [-1,1]
-    nTex.g = -nTex.g;
+    nTex.g = nTex.g; 
     vec3 N = normalize(mix(vec3(0,0,1), nTex, normalMix)); 
 
     vec3 V = normalize(vViewDir); //view direction perpendicolare
